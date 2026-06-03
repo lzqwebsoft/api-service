@@ -1,0 +1,10 @@
+{
+  "server_port": "8080",
+  "db_user": "root",
+  "db_pass": "123456",
+  "db_host": "127.0.0.1",
+  "db_port": "3306",
+  "db_name": "api_service",
+  "db_params": "parseTime=true&loc=Local",
+  "db_dsn": ""
+}

@@ -1,0 +1,75 @@
+{{define "view"}}
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-info">
+            <h3>管理员总数</h3>
+            <p id="stat-total-users">{{.TotalUsers}}</p>
+        </div>
+        <div class="stat-icon"><i class="fas fa-users-cog" style="color: var(--primary);"></i></div>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+    <div class="search-box" style="visibility: hidden;">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" class="input-control" placeholder="搜索...">
+    </div>
+    <button onclick="openModal('create-user-modal')" class="btn btn-sm" style="width: auto;"><i class="fas fa-plus"></i> 新增管理员</button>
+</div>
+
+<!-- Users Table -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>管理员 ID</th>
+                    <th>用户名</th>
+                    <th>创建时间</th>
+                </tr>
+            </thead>
+            <tbody id="user-table-body">
+                {{range .Users}}
+                <tr>
+                    <td>{{.ID}}</td>
+                    <td><strong style="color: var(--text-main);">{{.Username}}</strong></td>
+                    <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                </tr>
+                {{else}}
+                <tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 2rem;">暂无管理员数据</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Admin User Modal -->
+<div id="create-user-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>新增管理员账号</h2>
+            <button class="modal-close" onclick="closeModal('create-user-modal')">&times;</button>
+        </div>
+        <form id="create-user-form" action="/admin/users/create" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new-username">用户名</label>
+                    <input type="text" id="new-username" name="username" class="input-control" placeholder="例: admin2" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">密码</label>
+                    <input type="password" id="new-password" name="password" class="input-control" placeholder="输入密码" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('create-user-modal')">取消</button>
+                <button type="submit" class="btn btn-sm">确认创建</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/public/js/dashboard.js"></script>
+{{end}}

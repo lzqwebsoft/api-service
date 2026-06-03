@@ -1,0 +1,128 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - API Access Control</title>
+
+    <!-- FontAwesome Icons -->
+    <link href="/public/fontawesome/css/fontawesome.css" rel="stylesheet" />
+    <link href="/public/fontawesome/css/brands.css" rel="stylesheet" />
+    <link href="/public/fontawesome/css/solid.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+
+    {{if .Username}}
+    <div class="dashboard-wrapper">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <div class="brand-logo">A</div>
+                <span class="brand-title">API Token 管理后台</span>
+            </div>
+            
+            <div class="navbar-actions">
+                <div class="user-info">
+                    当前管理员: <strong id="admin-username-display">{{.Username}}</strong>
+                </div>
+                <form action="/admin/logout" method="POST" style="margin: 0; display: inline-block;">
+                    <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
+                </form>
+            </div>
+        </nav>
+
+        <!-- Dashboard Layout -->
+        <div class="dashboard-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <!-- Sidebar Toggle Button -->
+                <div class="sidebar-toggle" onclick="toggleSidebar()" title="收起/展开菜单">
+                    <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                </div>
+                <ul class="sidebar-menu">
+                    <li id="menu-apps" class="menu-item {{if eq .ActiveTab "apps"}}active{{end}}" onclick="location.href='/admin'">
+                        <span class="menu-icon"><i class="fas fa-key"></i></span>
+                        <span class="menu-text">APP Token 管理</span>
+                    </li>
+                    <li id="menu-users" class="menu-item {{if eq .ActiveTab "users"}}active{{end}}" onclick="location.href='/admin/users'">
+                        <span class="menu-icon"><i class="fas fa-users-cog"></i></span>
+                        <span class="menu-text">用户管理</span>
+                    </li>
+                </ul>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-container">
+                {{if .Error}}
+                    <div class="alert-error" style="margin-bottom: 1.5rem; display: block; padding: 0.75rem 1rem; border-radius: 8px; background-color: rgba(239, 68, 68, 0.1); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.875rem;">
+                        <i class="fas fa-exclamation-circle" style="margin-right: 0.5rem;"></i>{{.Error}}
+                    </div>
+                {{end}}
+                {{if .Success}}
+                    <div class="alert-success" style="margin-bottom: 1.5rem; padding: 0.75rem 1rem; border-radius: 8px; background-color: rgba(16, 185, 129, 0.1); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.875rem;">
+                        <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>{{.Success}}
+                    </div>
+                {{end}}
+                <!-- Target View Injection -->
+                {{template "view" .}}
+            </main>
+        </div>
+    </div>
+    {{else}}
+        <!-- Target View Injection -->
+        {{template "view" .}}
+    {{end}}
+
+    <!-- Toast Notification Wrapper -->
+    <div id="toast-notify" class="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-text"></span>
+    </div>
+
+    <!-- Immediate Sidebar Collapse Restoration Script to prevent layout flashing -->
+    <script>
+    (function() {
+        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (isCollapsed) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.add('collapsed');
+            }
+        }
+    })();
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const toggleIcon = document.getElementById('toggle-icon');
+        if (!sidebar) return;
+        
+        sidebar.classList.toggle('collapsed');
+        const isCollapsed = sidebar.classList.contains('collapsed');
+        localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        
+        if (toggleIcon) {
+            if (isCollapsed) {
+                toggleIcon.className = 'fas fa-chevron-right';
+            } else {
+                toggleIcon.className = 'fas fa-chevron-left';
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebar = document.getElementById('sidebar');
+        const toggleIcon = document.getElementById('toggle-icon');
+        if (sidebar && toggleIcon) {
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.className = 'fas fa-chevron-right';
+            } else {
+                toggleIcon.className = 'fas fa-chevron-left';
+            }
+        }
+    });
+    </script>
+</body>
+</html>
+{{end}}

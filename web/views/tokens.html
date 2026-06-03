@@ -1,0 +1,107 @@
+{{define "view"}}
+<!-- Header / Navigation back to apps -->
+<div class="toolbar" style="justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div>
+        <a href="/admin" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center;"><i class="fas fa-arrow-left" style="margin-right: 0.5rem;"></i>返回应用列表</a>
+    </div>
+    <div>
+        <h2 style="margin: 0; color: var(--text-main); font-size: 1.125rem; font-weight: 600;">
+            管理 App Token: <span style="color: var(--primary);">{{.AppName}} ({{.AppID}} v{{.Version}})</span>
+        </h2>
+    </div>
+    <div>
+        <!-- Generate Token Form -->
+        <form action="/admin/tokens/generate" method="POST" style="display:inline;">
+            <input type="hidden" name="app_id" value="{{.AppID}}">
+            <input type="hidden" name="version" value="{{.Version}}">
+            <input type="hidden" name="redirect_to_tokens" value="true">
+            <button type="submit" class="btn btn-sm" style="display: inline-flex; align-items: center;"><i class="fas fa-plus" style="margin-right: 0.5rem;"></i>生成新 Token</button>
+        </form>
+    </div>
+</div>
+
+<!-- Tokens Table / List -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Token (Access Key)</th>
+                    <th>发放时刻</th>
+                    <th>过期时刻</th>
+                    <th>当前状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Tokens}}
+                <tr>
+                    <td>
+                        <span class="token-list-hash" title="{{.Token}}" style="font-family: monospace; font-size: 0.85rem; color: var(--text-main); word-break: break-all;">
+                            {{.Token}}
+                        </span>
+                    </td>
+                    <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                    <td>{{.ExpiresAt.Format "2006-01-02 15:04:05"}}</td>
+                    <td>
+                        {{if .IsRevoked}}
+                            <span class="badge badge-danger">已撤销</span>
+                        {{else if .ExpiresAt.Before $.Now}}
+                            <span class="badge badge-danger">已过期</span>
+                        {{else}}
+                            <span class="badge badge-success">正常</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        {{if not (or .IsRevoked (.ExpiresAt.Before $.Now))}}
+                        <form action="/admin/tokens/revoke" method="POST" style="display:inline;" onsubmit="return confirm('确定要撤销此 Token 吗？撤销后，客户端将立即无法访问 API！')">
+                            <input type="hidden" name="token" value="{{.Token}}">
+                            <input type="hidden" name="app_id" value="{{$.AppID}}">
+                            <input type="hidden" name="version" value="{{$.Version}}">
+                            <button type="submit" class="btn btn-outline btn-danger btn-sm">撤销</button>
+                        </form>
+                        {{else}}
+                            -
+                        {{end}}
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">该版本尚无已发放的 Token</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Token Result Modal -->
+{{if .GeneratedToken}}
+<div id="token-result-modal" class="modal-overlay active">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Token 生成成功</h2>
+            <button class="modal-close" onclick="closeModal('token-result-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+                请复制生成的 Access Token，由于安全原因，该完整密匙无法再次从系统查询。
+            </p>
+            <div class="token-display-box">
+                <span id="generated-token-text" class="token-text">{{.GeneratedToken}}</span>
+                <button onclick="copyGeneratedToken()" class="copy-btn" title="复制到剪贴板"><i class="fas fa-copy"></i></button>
+            </div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted);">
+                所属应用: <strong style="color: var(--text-main);">{{.GeneratedTokenAppID}} (v{{.GeneratedTokenVersion}})</strong>
+            </div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">
+                过期时刻: <strong id="generated-token-expiry" style="color: var(--text-main);">{{.GeneratedTokenExpiry}}</strong>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-sm" onclick="closeModal('token-result-modal')">完成</button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+<script src="/public/js/dashboard.js"></script>
+{{end}}
