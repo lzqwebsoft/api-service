@@ -1,0 +1,146 @@
+{{define "view"}}
+<!-- Page Header -->
+<div class="page-header" style="margin-bottom: 1.5rem;">
+    <h2 style="margin: 0; color: var(--text-main); font-size: 1.25rem; font-weight: 600;">应用与 Token 管理</h2>
+    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">注册和管理所有客户端应用版本，并为其生成/分发 Access Token。</p>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+    <div class="search-box" style="margin-bottom: 0; max-width: 320px; width: 100%;">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="search-input" class="input-control" placeholder="搜索 App ID 或名称..." oninput="filterApps()">
+    </div>
+    <button onclick="openModal('register-modal')" class="btn btn-sm" style="width: auto; height: 38px;"><i class="fas fa-plus"></i> 注册新应用</button>
+</div>
+
+<!-- Apps Table -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>应用标识 / 名称</th>
+                    <th>版本号</th>
+                    <th>实时激活状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="app-table-body">
+                {{range .Apps}}
+                <tr>
+                    <td>
+                        <div class="app-name-block">
+                            <span class="app-name-title">{{.Name}}</span>
+                            <span class="app-name-id">{{.AppID}}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-version">{{.Version}}</span>
+                    </td>
+                    <td>
+                        <form action="/admin/apps/toggle" method="POST" style="margin: 0; display: inline-block;">
+                            <input type="hidden" name="app_id" value="{{.AppID}}">
+                            <input type="hidden" name="version" value="{{.Version}}">
+                            <input type="hidden" name="is_active" value="{{if .IsActive}}false{{else}}true{{end}}">
+                            <label class="switch">
+                                <input type="checkbox" {{if .IsActive}}checked{{end}} onchange="this.form.submit()">
+                                <span class="slider"></span>
+                            </label>
+                        </form>
+                    </td>
+                    <td>
+                        <div class="actions-cell" style="align-items: center;">
+                            <form action="/admin/tokens/generate" method="POST" style="display:inline-flex; align-items: center; gap: 6px;">
+                                <input type="hidden" name="app_id" value="{{.AppID}}">
+                                <input type="hidden" name="version" value="{{.Version}}">
+                                <select name="platform" class="input-control" style="width: auto; padding: 0.3rem 0.5rem; font-size: 0.8125rem; border-radius: 6px; height: 32px;" required>
+                                    <option value="" disabled selected>选择平台</option>
+                                    <option value="android">android</option>
+                                    <option value="iOS">iOS</option>
+                                    <option value="windows">windows</option>
+                                    <option value="Linux">Linux</option>
+                                    <option value="mac">mac</option>
+                                </select>
+                                <button type="submit" class="btn btn-sm" style="height: 32px; width: auto;">生成 Token</button>
+                            </form>
+                            <a href="/admin/tokens?app_id={{urlquery .AppID}}&version={{urlquery .Version}}" class="btn btn-outline btn-sm" style="height: 32px; display: inline-flex; align-items: center;">管理 Token ({{.TokenCount}})</a>
+                            <form action="/admin/apps/delete" method="POST" style="display:inline-flex; margin: 0;" onsubmit="return confirm('确定要删除该应用吗？删除后对应的 App Token 将一并删除！')">
+                                <input type="hidden" name="app_id" value="{{.AppID}}">
+                                <input type="hidden" name="version" value="{{.Version}}">
+                                <button type="submit" class="btn btn-outline btn-sm" style="height: 32px; display: inline-flex; align-items: center; color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: transparent;" onmouseover="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.borderColor='var(--danger)'" onmouseout="this.style.background='transparent'; this.style.borderColor='rgba(239, 68, 68, 0.3)'">删除</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">暂无应用数据</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODALS -->
+<!-- Register App Modal -->
+<div id="register-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>注册新应用版本</h2>
+            <button class="modal-close" onclick="closeModal('register-modal')">&times;</button>
+        </div>
+        <form id="register-form" action="/admin/apps/register" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="reg-appid">应用标识 (App ID)</label>
+                    <input type="text" id="reg-appid" name="app_id" class="input-control" placeholder="例: weather_service" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-name">应用名称</label>
+                    <input type="text" id="reg-name" name="name" class="input-control" placeholder="例: 天气预报外部客户端" required>
+                </div>
+                <div class="form-group">
+                    <label for="reg-version">版本号 (Version)</label>
+                    <input type="text" id="reg-version" name="version" class="input-control" placeholder="例: 1.0.0" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('register-modal')">取消</button>
+                <button type="submit" class="btn btn-sm">确认注册</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Token Result Modal -->
+{{if .GeneratedToken}}
+<div id="token-result-modal" class="modal-overlay active">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Token 生成成功</h2>
+            <button class="modal-close" onclick="closeModal('token-result-modal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+                请复制生成的 Access Token，由于安全原因，该完整密匙无法再次从系统查询。
+            </p>
+            <div class="token-display-box">
+                <span id="generated-token-text" class="token-text">{{.GeneratedToken}}</span>
+                <button onclick="copyGeneratedToken()" class="copy-btn" title="复制到剪贴板"><i class="fas fa-copy"></i></button>
+            </div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted);">
+                所属应用: <strong style="color: var(--text-main);">{{.GeneratedTokenAppID}} (v{{.GeneratedTokenVersion}})</strong>
+            </div>
+            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">
+                使用平台: <strong style="color: var(--text-main);">{{.GeneratedTokenPlatform}}</strong>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-sm" onclick="closeModal('token-result-modal')">完成</button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+<script src="/public/js/dashboard.js"></script>
+{{end}}

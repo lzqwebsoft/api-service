@@ -23,6 +23,7 @@ type AppService interface {
 	GetApp(ctx context.Context, appID string, version string) (*models.App, error)
 	ListApps(ctx context.Context) ([]*models.App, error)
 	UpdateAppStatus(ctx context.Context, appID string, version string, isActive bool) error
+	DeleteApp(ctx context.Context, appID string, version string) error
 }
 
 type appService struct {
@@ -38,10 +39,6 @@ func (s *appService) RegisterApp(ctx context.Context, app *models.App) error {
 	if app.AppID == "" || app.Name == "" || app.Version == "" {
 		return ErrInvalidAppInput
 	}
-	if app.TokenTTL <= 0 {
-		app.TokenTTL = 3600 // Default TTL of 1 hour (3600 seconds)
-	}
-
 	// Check if this version of the app already exists
 	existing, err := s.repo.GetByAppIDAndVersion(ctx, app.AppID, app.Version)
 	if err != nil {
@@ -80,4 +77,16 @@ func (s *appService) UpdateAppStatus(ctx context.Context, appID string, version 
 	}
 
 	return s.repo.UpdateStatus(ctx, appID, version, isActive)
+}
+
+func (s *appService) DeleteApp(ctx context.Context, appID string, version string) error {
+	existing, err := s.repo.GetByAppIDAndVersion(ctx, appID, version)
+	if err != nil {
+		return err
+	}
+	if existing == nil {
+		return ErrAppNotFound
+	}
+
+	return s.repo.Delete(ctx, appID, version)
 }

@@ -7,7 +7,6 @@ CREATE TABLE IF NOT EXISTS `apps` (
     `app_id` VARCHAR(50) NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `version` VARCHAR(50) NOT NULL,
-    `token_ttl` INT NOT NULL DEFAULT 3600,       -- Token lifespan in seconds
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,    -- 1: Active, 0: Inactive
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -18,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `tokens` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `token` VARCHAR(255) NOT NULL UNIQUE,
     `app_record_id` INT NOT NULL,
-    `expires_at` TIMESTAMP NOT NULL,
+    `platform` VARCHAR(20) NOT NULL,
     `is_revoked` TINYINT(1) NOT NULL DEFAULT 0,  -- 1: Revoked, 0: Active
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY `idx_token` (`token`),
@@ -39,5 +38,26 @@ CREATE TABLE IF NOT EXISTS `admin_sessions` (
     `expires_at` TIMESTAMP NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY `idx_session_token` (`session_token`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `token_blacklist` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `token` VARCHAR(255) NOT NULL,
+    `platform` VARCHAR(20) NOT NULL,
+    `version` VARCHAR(50) NOT NULL,
+    `user_uuid` VARCHAR(100) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY `idx_token_user` (`token`, `user_uuid`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `token_access_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `token` VARCHAR(255) NOT NULL,
+    `platform` VARCHAR(20) NOT NULL,
+    `version` VARCHAR(50) NOT NULL,
+    `user_uuid` VARCHAR(100) NOT NULL,
+    `ip` VARCHAR(45) NOT NULL,
+    `api_path` VARCHAR(255) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

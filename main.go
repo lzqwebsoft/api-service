@@ -42,13 +42,15 @@ func main() {
 	appRepo := repository.NewAppRepository(sqlDB)
 	tokenRepo := repository.NewTokenRepository(sqlDB)
 	adminRepo := repository.NewAdminRepository(sqlDB)
+	blacklistRepo := repository.NewBlacklistRepository(sqlDB)
+	logRepo := repository.NewLogRepository(sqlDB)
 
 	// Seed default administrator if DB is empty
 	db.SeedAdminUser(adminRepo)
 
 	// 4. Initialize services (Business Logic Layer)
 	appService := service.NewAppService(appRepo)
-	tokenService := service.NewTokenService(tokenRepo, appRepo)
+	tokenService := service.NewTokenService(tokenRepo, appRepo, blacklistRepo, logRepo)
 	adminService := service.NewAdminService(adminRepo)
 
 	// 5. Initialize handlers (Controller Layer)
@@ -74,11 +76,18 @@ func main() {
 	adminSessionAuth := middleware.AdminSessionMiddleware(adminService)
 
 	mux.Handle("/admin", adminSessionAuth(webHandler))
+	mux.Handle("/admin/apps", adminSessionAuth(webHandler))
 	mux.Handle("/admin/users", adminSessionAuth(webHandler))
 	mux.Handle("/admin/tokens", adminSessionAuth(webHandler))
+	mux.Handle("/admin/blacklist", adminSessionAuth(webHandler))
+	mux.Handle("/admin/blacklist/add", adminSessionAuth(webHandler))
+	mux.Handle("/admin/blacklist/delete", adminSessionAuth(webHandler))
+	mux.Handle("/admin/logs", adminSessionAuth(webHandler))
+	mux.Handle("/admin/logs/blacklist", adminSessionAuth(webHandler))
 	mux.Handle("/admin/logout", adminSessionAuth(webHandler))
 	mux.Handle("/admin/apps/register", adminSessionAuth(webHandler))
 	mux.Handle("/admin/apps/toggle", adminSessionAuth(webHandler))
+	mux.Handle("/admin/apps/delete", adminSessionAuth(webHandler))
 	mux.Handle("/admin/tokens/generate", adminSessionAuth(webHandler))
 	mux.Handle("/admin/tokens/revoke", adminSessionAuth(webHandler))
 	mux.Handle("/admin/users/create", adminSessionAuth(webHandler))

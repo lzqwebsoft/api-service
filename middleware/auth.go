@@ -3,9 +3,11 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"strings"
 
+	"api-service/models"
 	"api-service/service"
 )
 
@@ -32,7 +34,26 @@ func errorResponse(w http.ResponseWriter, statusCode int, errMsg string) {
 	})
 }
 
-// AuthMiddleware creates a middleware that validates bearer tokens and populates request context
+func getIP(r *http.Request) string {
+	ip := r.Header.Get("X-Forwarded-For")
+	if ip != "" {
+		return strings.TrimSpace(strings.Split(ip, ",")[0])
+	}
+	ip = r.Header.Get("X-Real-IP")
+	if ip != "" {
+		return strings.TrimSpace(ip)
+	}
+	host := r.RemoteAddr
+	if strings.Contains(host, ":") {
+		h, _, err := net.SplitHostPort(host)
+		if err == nil {
+			return h
+		}
+	}
+	return host
+}
+
+// AuthMiddleware creates a middleware that validates bearer tokens, verifies user blacklist, logs access, and populates request context
 func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,17 +73,58 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 			details, err := tokenService.ValidateToken(r.Context(), tokenStr)
 			if err != nil {
 				// Handle dynamic validation failures with appropriate error responses
-				if err == service.ErrInvalidToken {
+				switch err {
+				case service.ErrInvalidToken:
 					errorResponse(w, http.StatusUnauthorized, "Invalid access token")
-				} else if err == service.ErrTokenExpired {
-					errorResponse(w, http.StatusUnauthorized, "Token has expired")
-				} else if err == service.ErrTokenRevoked {
+				case service.ErrTokenRevoked:
 					errorResponse(w, http.StatusUnauthorized, "Token has been revoked")
-				} else if err == service.ErrAppInactive {
+				case service.ErrAppInactive:
 					errorResponse(w, http.StatusUnauthorized, "Associated application version is inactive")
-				} else {
+				default:
 					errorResponse(w, http.StatusInternalServerError, "Internal token validation error")
 				}
+				return
+			}
+
+			// Extract client contextual metadata
+			userUUID := r.URL.Query().Get("user_uuid")
+			if userUUID == "" {
+				userUUID = r.Header.Get("X-User-UUID")
+			}
+
+			platform := r.URL.Query().Get("platform")
+			if platform == "" {
+				platform = r.Header.Get("X-Platform")
+			}
+			if platform == "" {
+				platform = details.Platform
+			}
+
+			version := r.URL.Query().Get("version")
+			if version == "" {
+				version = r.Header.Get("X-Version")
+			}
+			if version == "" {
+				version = details.Version
+			}
+
+			clientIP := getIP(r)
+
+			// Log token access
+			accessLog := &models.TokenAccessLog{
+				Token:    tokenStr,
+				Platform: platform,
+				Version:  version,
+				UserUUID: userUUID,
+				IP:       clientIP,
+				APIPath:  r.URL.Path,
+			}
+			_ = tokenService.LogAccess(r.Context(), accessLog)
+
+			// Verify if the token is blacklisted for this user
+			isBlocked, err := tokenService.IsBlacklisted(r.Context(), tokenStr, userUUID)
+			if err == nil && isBlocked {
+				errorResponse(w, http.StatusUnauthorized, "Token has been blacklisted for this user")
 				return
 			}
 

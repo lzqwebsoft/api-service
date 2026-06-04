@@ -1,0 +1,111 @@
+{{define "view"}}
+<!-- Page Header -->
+<div class="page-header" style="margin-bottom: 1.5rem;">
+    <h2 style="margin: 0; color: var(--text-main); font-size: 1.25rem; font-weight: 600;">Token 访问黑名单</h2>
+    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">被拉黑的用户 (UUID) 使用对应的 Token 访问 API 将被立即阻断。
+    </p>
+</div>
+<!-- Toolbar -->
+<div class="toolbar"
+    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+    <div class="search-box" style="margin-bottom: 0; max-width: 320px; width: 100%;">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="blacklist-search" class="input-control" placeholder="搜索 Token 或 UUID...">
+    </div>
+    <button onclick="openModal('add-blacklist-modal')" class="btn btn-sm" style="width: auto; height: 38px;"><i
+            class="fas fa-plus"></i> 手动添加黑名单</button>
+</div>
+<!-- Blacklist Table -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Token (Access Key)</th>
+                    <th>客户端平台</th>
+                    <th>客户端版本</th>
+                    <th>被限制用户 UUID</th>
+                    <th>拉黑时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="blacklist-table-body">
+                {{range .Blacklist}}
+                <tr>
+                    <td>
+                        <span class="token-list-hash" title="{{.Token}}">
+                            {{.Token}}
+                        </span>
+                    </td>
+                    <td><span class="badge badge-version">{{.Platform}}</span></td>
+                    <td><span class="badge badge-version">{{.Version}}</span></td>
+                    <td>
+                        <strong style="color: var(--danger);">{{.UserUUID}}</strong>
+                    </td>
+                    <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                    <td>
+                        <form action="/admin/blacklist/delete" method="POST" style="margin: 0; display:inline;">
+                            <input type="hidden" name="id" value="{{.ID}}">
+                            <button type="submit" class="btn btn-danger btn-sm">解除拉黑</button>
+                        </form>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">当前黑名单内无记录</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Add Blacklist Modal -->
+<div id="add-blacklist-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>手动添加 Token 黑名单</h2>
+            <button class="modal-close" onclick="closeModal('add-blacklist-modal')">&times;</button>
+        </div>
+        <form id="add-blacklist-form" action="/admin/blacklist/add" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="bl-token">Token (Access Key)</label>
+                    <input type="text" id="bl-token" name="token" class="input-control"
+                        placeholder="输入要限制的 Access Token" required>
+                </div>
+                <div class="form-group">
+                    <label for="bl-platform">平台</label>
+                    <select id="bl-platform" name="platform" class="input-control" required>
+                        <option value="android">android</option>
+                        <option value="iOS">iOS</option>
+                        <option value="windows">windows</option>
+                        <option value="Linux">Linux</option>
+                        <option value="mac">mac</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bl-version">客户端版本</label>
+                    <input type="text" id="bl-version" name="version" class="input-control" placeholder="例: 1.0.0"
+                        required>
+                </div>
+                <div class="form-group">
+                    <label for="bl-uuid">限制访问的用户 UUID</label>
+                    <input type="text" id="bl-uuid" name="user_uuid" class="input-control" placeholder="输入要拉黑的用户 UUID"
+                        required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline btn-sm"
+                    onclick="closeModal('add-blacklist-modal')">取消</button>
+                <button type="submit" class="btn btn-sm">确认拉黑</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="/public/js/dashboard.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        initTableSearch('blacklist-search', 'blacklist-table-body');
+    });
+</script>
+{{end}}
