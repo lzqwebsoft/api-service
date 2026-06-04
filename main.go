@@ -10,10 +10,12 @@ import (
 	"api-service/config"
 	"api-service/db"
 	"api-service/handler"
-	logger "api-service/utils"
+	"api-service/handler/admin"
+	"api-service/handler/api"
 	"api-service/middleware"
 	"api-service/repository"
 	"api-service/service"
+	logger "api-service/utils"
 )
 
 //go:embed web/* public/*
@@ -44,6 +46,7 @@ func main() {
 	adminRepo := repository.NewAdminRepository(sqlDB)
 	blacklistRepo := repository.NewBlacklistRepository(sqlDB)
 	logRepo := repository.NewLogRepository(sqlDB)
+	calendarRepo := repository.NewCalendarRepository(sqlDB)
 
 	// Seed default administrator if DB is empty
 	db.SeedAdminUser(adminRepo)
@@ -52,66 +55,51 @@ func main() {
 	appService := service.NewAppService(appRepo)
 	tokenService := service.NewTokenService(tokenRepo, appRepo, blacklistRepo, logRepo)
 	adminService := service.NewAdminService(adminRepo)
+	calendarService := service.NewCalendarService(calendarRepo)
 
 	// 5. Initialize handlers (Controller Layer)
-	webHandler := handler.NewWebHandler(embeddedFS, adminService, appService, tokenService)
+	base := admin.NewBaseHandler(embeddedFS)
+	adminSessionAuth := middleware.AdminSessionMiddleware(adminService)
+
+	controllers := []handler.Controller{
+		admin.NewAuthHandler(base, adminService, adminSessionAuth),
+		admin.NewDashboardHandler(base, appService, tokenService, adminSessionAuth),
+		admin.NewAppHandler(base, appService, tokenService, adminSessionAuth),
+		admin.NewTokenHandler(base, tokenService, appService, adminSessionAuth),
+		admin.NewUserHandler(base, adminService, adminSessionAuth),
+		admin.NewBlacklistHandler(base, tokenService, adminSessionAuth),
+		admin.NewLogHandler(base, tokenService, adminSessionAuth),
+		admin.NewCalendarHandler(base, calendarService, adminSessionAuth),
+		api.NewAPIHandler(tokenService),
+	}
 
 	// 6. Register routes
 	mux := http.NewServeMux()
 
-	// Redirect root "/" to "/admin"
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		http.Redirect(w, r, "/admin", http.StatusSeeOther)
+	// TODO
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
 	})
 
-	// Public Admin routes
-	mux.Handle("/admin/login", webHandler)
-	mux.Handle("/admin/captcha", webHandler)
-
-	// Protected Admin Routes (requires Administrator session cookie)
-	adminSessionAuth := middleware.AdminSessionMiddleware(adminService)
-
-	mux.Handle("/admin", adminSessionAuth(webHandler))
-	mux.Handle("/admin/apps", adminSessionAuth(webHandler))
-	mux.Handle("/admin/users", adminSessionAuth(webHandler))
-	mux.Handle("/admin/tokens", adminSessionAuth(webHandler))
-	mux.Handle("/admin/blacklist", adminSessionAuth(webHandler))
-	mux.Handle("/admin/blacklist/add", adminSessionAuth(webHandler))
-	mux.Handle("/admin/blacklist/delete", adminSessionAuth(webHandler))
-	mux.Handle("/admin/logs", adminSessionAuth(webHandler))
-	mux.Handle("/admin/logs/blacklist", adminSessionAuth(webHandler))
-	mux.Handle("/admin/logout", adminSessionAuth(webHandler))
-	mux.Handle("/admin/apps/register", adminSessionAuth(webHandler))
-	mux.Handle("/admin/apps/toggle", adminSessionAuth(webHandler))
-	mux.Handle("/admin/apps/delete", adminSessionAuth(webHandler))
-	mux.Handle("/admin/tokens/generate", adminSessionAuth(webHandler))
-	mux.Handle("/admin/tokens/revoke", adminSessionAuth(webHandler))
-	mux.Handle("/admin/users/create", adminSessionAuth(webHandler))
-
-	// Public Protected API endpoint for client applications (requires Client Access Token)
-	protectedMux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			handler.ErrorResponse(w, http.StatusMethodNotAllowed, "Method not allowed")
-			return
+	for _, c := range controllers {
+		handlerImpl, ok := c.(http.Handler)
+		if !ok {
+			continue // ensure the controller embeds *handler.Router
 		}
+		for _, route := range c.InitRoutes() {
+			var finalHandler http.Handler = handlerImpl
+			for _, mw := range route.Middlewares {
+				finalHandler = mw(finalHandler)
+			}
 
-		appID := middleware.GetAppID(r.Context())
-		version := middleware.GetVersion(r.Context())
-
-		handler.JSONResponse(w, http.StatusOK, map[string]interface{}{
-			"message":               "Access granted to protected resource!",
-			"authenticated_app_id":  appID,
-			"authenticated_version": version,
-			"timestamp":             time.Now().Format(time.RFC3339),
-		})
-	})
-
-	clientAuth := middleware.AuthMiddleware(tokenService)
-	mux.Handle("/api/protected/resource", clientAuth(protectedMux))
+			// 组装 Go 1.22 的路由 Pattern
+			pattern := route.Path
+			if route.Method != "" {
+				pattern = route.Method + " " + route.Path
+			}
+			mux.Handle(pattern, finalHandler)
+		}
+	}
 
 	// Serve public static files (checks local directory first for development, falls back to embedded FS)
 	var publicHandler http.Handler
@@ -140,4 +128,3 @@ func main() {
 		logger.Fatalf("Server stopped unexpectedly: %v", err)
 	}
 }
-

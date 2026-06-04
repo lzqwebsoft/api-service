@@ -1130,6 +1130,11 @@ input:checked+.slider:before {
     position: relative;
 }
 
+/* Hide rows that the paginator marks as not on the current page */
+tr.paginated-hidden {
+    display: none !important;
+}
+
 /* Pagination controls styling */
 .pagination-controls {
     display: flex;

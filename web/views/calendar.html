@@ -1,0 +1,211 @@
+{{define "view"}}
+<!-- Page Header -->
+<div class="page-header">
+    <h2 class="page-title">节假日与调休安排</h2>
+    <p class="page-subtitle">管理国家法定节假日及周末调休例外日期。周一至周五默认上班，周六日默认休息，此处仅记录打破默认规则的日期。</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-info">
+            <h3>例外日期总数</h3>
+            <p id="stat-total-exceptions">{{.TotalCount}}</p>
+        </div>
+        <div class="stat-icon"><i class="fas fa-calendar-alt text-primary"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-info">
+            <h3>节假日放假 (原工作日放假)</h3>
+            <p id="stat-holidays">{{.HolidayCount}}</p>
+        </div>
+        <div class="stat-icon"><i class="fas fa-umbrella-beach text-danger"></i></div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-info">
+            <h3>调休上班 (原公休日上班)</h3>
+            <p id="stat-workdays">{{.WorkdayCount}}</p>
+        </div>
+        <div class="stat-icon"><i class="fas fa-briefcase text-success"></i></div>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+    <div class="search-box search-box-container">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="calendar-search" class="input-control" placeholder="搜索日期、事由或类型...">
+    </div>
+    <button onclick="openModal('add-calendar-modal')" class="btn btn-sm w-auto">
+        <i class="fas fa-plus"></i>
+        新增例外日期
+    </button>
+</div>
+
+<!-- Calendar Table -->
+<div class="table-card">
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>类型</th>
+                    <th>事由 (描述)</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="calendar-table-body">
+                {{range .Exceptions}}
+                <tr>
+                    <td><strong class="text-main">{{.Date}}</strong></td>
+                    <td>
+                        {{if .IsWorkday}}
+                        <span class="badge badge-active"
+                            style="background-color: var(--success-glow); color: var(--success);">上班 (调休)</span>
+                        {{else}}
+                        <span class="badge badge-revoked"
+                            style="background-color: var(--danger-glow); color: var(--danger);">休息 (放假)</span>
+                        {{end}}
+                    </td>
+                    <td>{{.Description}}</td>
+                    <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <!-- Edit Button -->
+                            <button class="btn btn-outline btn-sm"
+                                onclick="openEditCalendarModal('{{.Date}}', '{{if .IsWorkday}}1{{else}}0{{end}}', '{{.Description}}')">
+                                编辑
+                            </button>
+                            <!-- Delete Form -->
+                            <form action="/admin/calendar/delete" method="POST" class="m-0 d-inline"
+                                onsubmit="return confirm('确定要删除 {{.Date}} 的例外安排吗？')">
+                                <input type="hidden" name="date" value="{{.Date}}">
+                                <button type="submit" class="btn btn-danger btn-sm">删除</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="5" class="table-empty-row">暂无例外日期数据</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Calendar Exception Modal -->
+<div id="add-calendar-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>新增例外安排</h2>
+            <button class="modal-close" onclick="closeModal('add-calendar-modal')">&times;</button>
+        </div>
+        <form id="add-calendar-form" action="/admin/calendar/add" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="add-date">选择日期</label>
+                    <input type="date" id="add-date" name="date" class="input-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-is-workday">类型</label>
+                    <select id="add-is-workday" name="is_workday" class="input-control" required>
+                        <option value="0">休息 (原本上班却放假)</option>
+                        <option value="1">上班 (原本休息却上班/调休)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="add-description">事由 (描述)</label>
+                    <input type="text" id="add-description" name="description" class="input-control"
+                        placeholder="例: 春节放假 或 国庆节调休上班" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline btn-sm"
+                    onclick="closeModal('add-calendar-modal')">取消</button>
+                <button type="submit" class="btn btn-sm">确认添加</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Calendar Exception Modal -->
+<div id="edit-calendar-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>编辑例外安排</h2>
+            <button class="modal-close" onclick="closeModal('edit-calendar-modal')">&times;</button>
+        </div>
+        <form id="edit-calendar-form" action="/admin/calendar/update" method="POST">
+            <input type="hidden" id="edit-date" name="date">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="text" id="edit-date-display" class="input-control" disabled
+                        style="cursor: not-allowed; opacity: 0.6;">
+                </div>
+                <div class="form-group">
+                    <label for="edit-is-workday">类型</label>
+                    <select id="edit-is-workday" name="is_workday" class="input-control" required>
+                        <option value="0">休息 (原本上班却放假)</option>
+                        <option value="1">上班 (原本休息却上班/调休)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-description">事由 (描述)</label>
+                    <input type="text" id="edit-description" name="description" class="input-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline btn-sm"
+                    onclick="closeModal('edit-calendar-modal')">取消</button>
+                <button type="submit" class="btn btn-sm">确认保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/public/js/dashboard.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('calendar-search');
+        const tbody = document.getElementById('calendar-table-body');
+        if (!searchInput || !tbody) return;
+
+        searchInput.addEventListener('input', () => {
+            const val = searchInput.value.toLowerCase().trim();
+            const rows = tbody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                // Skip empty-data placeholder row
+                if (row.cells.length === 1 && row.cells[0].getAttribute('colspan')) return;
+
+                // Collect searchable text: date, type badge, description (skip created_at & actions)
+                const date = (row.cells[0] && row.cells[0].textContent || '').toLowerCase();
+                const type = (row.cells[1] && row.cells[1].textContent || '').toLowerCase();
+                const desc = (row.cells[2] && row.cells[2].textContent || '').toLowerCase();
+
+                const match = !val || date.includes(val) || type.includes(val) || desc.includes(val);
+                row.style.display = match ? '' : 'none';
+            });
+
+            // Reset paginator to page 1 after filtering
+            const table = tbody.closest('table');
+            if (table && table.paginator) {
+                table.paginator.currentPage = 1;
+                table.paginator.update();
+            }
+        });
+    });
+
+    function openEditCalendarModal(date, isWorkday, description) {
+        document.getElementById('edit-date').value = date;
+        document.getElementById('edit-date-display').value = date;
+        document.getElementById('edit-is-workday').value = isWorkday;
+        document.getElementById('edit-description').value = description;
+        openModal('edit-calendar-modal');
+    }
+</script>
+{{end}}

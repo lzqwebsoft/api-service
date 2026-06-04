@@ -61,3 +61,11 @@ CREATE TABLE IF NOT EXISTS `token_access_logs` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS `calendar_exception`  (
+  `date` date NOT NULL COMMENT '日期',
+  `is_workday` tinyint(1) NOT NULL COMMENT '1=上班，0=休息',
+  `description` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '事由，如“春节放假”或“劳动节调休上班”',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`date`) USING BTREE,
+  INDEX `idx_year`( ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '放假调休例外表' ROW_FORMAT = Dynamic;

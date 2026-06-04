@@ -89,6 +89,13 @@
                             </li>
                         </ul>
                     </li>
+
+                    <li id="menu-calendar" class="menu-item {{if eq .ActiveTab "calendar"}}active{{end}}"
+                        onclick="location.href='/admin/calendar'" title="节假日安排">
+                        <span class="menu-icon"><i class="fas fa-calendar-alt"></i></span>
+                        <span class="menu-text">节假日安排</span>
+                    </li>
+
                     <li id="menu-users" class="menu-item {{if eq .ActiveTab " users"}}active{{end}}"
                         onclick="location.href='/admin/users'" title="用户管理">
                         <span class="menu-icon"><i class="fas fa-users-cog"></i></span>

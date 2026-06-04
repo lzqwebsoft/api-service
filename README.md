@@ -12,13 +12,14 @@
 
 ## 核心特性
 
-1. **零第三方 Web 框架依赖**：路由、中间件、渲染和 Server 管理全部采用 Go 标准库 `net/http` 实现。
+1. **零第三方 Web 框架依赖**：路由、中间件、渲染和 Server 管理全部采用 Go 1.22+ 原生 `net/http` 实现。
 2. **前后架构分离与安全隔离**：
-   - 后台管理（`/admin`）使用 Session Cookie 状态管理，表单采用 HTML Form 原生提交以消除 AJAX 依赖，并配合 SVG 图像验证码（验证码存于 Session 中）进行安全登录。
+   - 后台管理（`/admin`）使用 Session Cookie 状态管理，表单采用 HTML Form 原生提交以消除 AJAX 依赖，并配合 SVG 图像验证码进行安全登录。
    - 客户端接口（`/api`）使用 Bearer Token 安全头部，两者互不干扰。
-3. **实时 Token 有效期控制**：Token 验证采用数据库关联查询方式（Reference Token 模式），在校验 Token 本身有效期和撤销状态的同时，实时检查其关联的 App 版本的激活状态。
-4. **分层架构设计**：项目采用模块化的分层设计（DAL 数据访问层 -> Service 业务层 -> Handler 控制层 -> Middleware 拦截器层），便于扩展与维护。
-5. **精美交互体验**：提供玻璃拟态（Glassmorphism）暗色风格的控制后台，支持点击折叠菜单栏（状态持久化，且无首屏布局抖动）。
+3. **声明式路由与彻底解耦**：采用结构体实现 `Controller` 接口的模式（`InitRoutes`），并利用 Go 1.22 的模式匹配功能（`"GET /path"`），彻底消除了业务方法中冗余的 Method 判断，实现了细粒度中间件注入与路由组装的高度解耦。
+4. **实时 Token 有效期控制**：Token 验证采用数据库关联查询方式，实时检查 Token 本身及其关联 App 版本的激活状态。
+5. **分层架构设计**：项目采用模块化的分层设计（DAL 数据访问层 -> Service 业务层 -> Handler 控制层 -> Middleware 拦截器层），便于扩展与维护。
+6. **精美交互体验**：提供玻璃拟态（Glassmorphism）暗色风格的控制后台，支持点击折叠菜单栏（状态持久化，且无首屏布局抖动）。
 
 ---
 
@@ -45,8 +46,10 @@ api-service/
 │   ├── app_service.go        # 应用及版本管理的业务逻辑
 │   └── token_service.go      # Token 的生成、实时校验与撤销逻辑
 ├── handler/
+│   ├── admin/                # 针对控制台的所有后端 Handler 实现（按领域切分：app, auth, log 等）
+│   ├── api/                  # 针对外部客户端的纯 JSON API Handler
 │   ├── response.go           # 统一 JSON 响应格式辅助方法
-│   └── web_handler.go        # 后台管理及页面 SSR 控制器（合并视图和表单操作）
+│   └── route.go              # 控制器接口抽象（Controller）与声明式 Router 实现
 ├── middleware/
 │   ├── admin_auth.go         # 针对 /admin 的 Cookie Session 校验与重定向拦截器
 │   ├── auth.go               # 针对 /api 的 Token Bearer 安全校验中间件

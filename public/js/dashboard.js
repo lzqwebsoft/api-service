@@ -163,8 +163,8 @@ class TablePaginator {
             return !(row.cells.length === 1 && row.cells[0].getAttribute('colspan'));
         });
 
-        // Hide all rows initially using data attribute
-        allRows.forEach(row => row.setAttribute('data-paginated-hidden', 'true'));
+        // Hide all rows initially
+        allRows.forEach(row => row.classList.add('paginated-hidden'));
 
         // Show visible rows on current page
         const start = (this.currentPage - 1) * this.pageSize;
@@ -172,7 +172,7 @@ class TablePaginator {
 
         visibleRows.forEach((row, index) => {
             if (index >= start && index < end) {
-                row.removeAttribute('data-paginated-hidden');
+                row.classList.remove('paginated-hidden');
             }
         });
 
