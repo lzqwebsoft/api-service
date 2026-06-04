@@ -32,15 +32,15 @@
             </div>
 
             <div class="navbar-actions">
-                <button id="theme-toggle" class="btn btn-outline btn-sm" onclick="toggleTheme()" title="切换主题"
-                    style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer;">
-                    <i class="fas fa-sun" id="theme-icon-light" style="display: none; font-size: 0.875rem;"></i>
-                    <i class="fas fa-moon" id="theme-icon-dark" style="font-size: 0.875rem;"></i>
+                <button id="theme-toggle" class="btn btn-outline btn-sm theme-toggle-btn" onclick="toggleTheme()"
+                    title="切换主题">
+                    <i class="fa-solid fa-sun icon-sm d-none" id="theme-icon-light"></i>
+                    <i class="fa-solid fa-moon icon-sm" id="theme-icon-dark"></i>
                 </button>
                 <div class="user-info">
                     当前管理员: <strong id="admin-username-display">{{.Username}}</strong>
                 </div>
-                <form action="/admin/logout" method="POST" style="margin: 0; display: inline-block;">
+                <form action="/admin/logout" method="POST" class="m-0 d-inline-block">
                     <button type="submit" class="btn btn-outline btn-sm">退出登录</button>
                 </form>
             </div>
@@ -100,15 +100,13 @@
             <!-- Main Content -->
             <main class="main-container">
                 {{if .Error}}
-                <div class="alert-error"
-                    style="margin-bottom: 1.5rem; display: block; padding: 0.75rem 1rem; border-radius: 8px; background-color: rgba(239, 68, 68, 0.1); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.875rem;">
-                    <i class="fas fa-exclamation-circle" style="margin-right: 0.5rem;"></i>{{.Error}}
+                <div class="alert-error d-block mb-6">
+                    <i class="fas fa-exclamation-circle mr-2"></i>{{.Error}}
                 </div>
                 {{end}}
                 {{if .Success}}
-                <div class="alert-success"
-                    style="margin-bottom: 1.5rem; padding: 0.75rem 1rem; border-radius: 8px; background-color: rgba(16, 185, 129, 0.1); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.875rem;">
-                    <i class="fas fa-check-circle" style="margin-right: 0.5rem;"></i>{{.Success}}
+                <div class="alert-success">
+                    <i class="fas fa-check-circle mr-2"></i>{{.Success}}
                 </div>
                 {{end}}
                 <!-- Target View Injection -->
@@ -170,11 +168,11 @@
             if (!lightIcon || !darkIcon) return;
 
             if (theme === 'light') {
-                lightIcon.style.display = 'none';
-                darkIcon.style.display = 'inline-block';
+                lightIcon.classList.add('d-none');
+                darkIcon.classList.remove('d-none');
             } else {
-                lightIcon.style.display = 'inline-block';
-                darkIcon.style.display = 'none';
+                lightIcon.classList.remove('d-none');
+                darkIcon.classList.add('d-none');
             }
         }
 

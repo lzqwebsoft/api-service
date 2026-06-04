@@ -1,37 +1,31 @@
 {{define "view"}}
 <!-- Page Header / Navigation back to apps -->
-<div class="page-header"
-    style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div style="display: flex; gap: 15px; align-items: center;">
-        <a href="/admin/apps" class="btn btn-outline btn-sm"
-            style="display: inline-flex; align-items: center; height: 38px; width: auto;"><i class="fas fa-arrow-left"
-                style="margin-right: 0.5rem;"></i>返回</a>
+<div class="page-header-flex">
+    <div class="d-flex gap-3 align-center">
+        <a href="/admin/apps" class="btn btn-outline btn-sm d-inline-flex align-center w-auto">
+            <i class="fas fa-arrow-left mr-2"></i>返回
+        </a>
         <div>
-            <h2 style="margin: 0; color: var(--text-main); font-size: 1.25rem; font-weight: 600;">
-                管理 App Token: <span style="color: var(--primary);">{{.AppName}}</span>
+            <h2 class="page-title">
+                管理 App Token: <span class="text-primary">{{.AppName}}</span>
             </h2>
-            <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">应用标识: {{.AppID}} &nbsp;|&nbsp;
-                版本号: v{{.Version}}</p>
+            <p class="page-subtitle">应用标识: {{.AppID}} &nbsp;|&nbsp; 版本号: v{{.Version}}</p>
         </div>
     </div>
 </div>
 
 <!-- Toolbar -->
-<div class="toolbar"
-    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
-    <div class="search-box" style="margin-bottom: 0; max-width: 320px; width: 100%;">
+<div class="toolbar">
+    <div class="search-box search-box-container">
         <i class="fas fa-search search-icon"></i>
         <input type="text" id="tokens-search" class="input-control" placeholder="搜索 Token 或平台...">
     </div>
     <!-- Generate Token Form -->
-    <form action="/admin/tokens/generate" method="POST"
-        style="display:inline-flex; align-items: center; gap: 8px; margin: 0;">
+    <form action="/admin/tokens/generate" method="POST" class="d-inline-flex align-center gap-2 m-0">
         <input type="hidden" name="app_id" value="{{.AppID}}">
         <input type="hidden" name="version" value="{{.Version}}">
         <input type="hidden" name="redirect_to_tokens" value="true">
-        <select name="platform" class="input-control"
-            style="width: auto; padding: 0.3rem 0.5rem; font-size: 0.8125rem; border-radius: 6px; height: 38px;"
-            required>
+        <select name="platform" class="input-control tokens-select" required>
             <option value="" disabled selected>选择平台</option>
             <option value="android">android</option>
             <option value="iOS">iOS</option>
@@ -39,13 +33,13 @@
             <option value="Linux">Linux</option>
             <option value="mac">mac</option>
         </select>
-        <button type="submit" class="btn btn-sm"
-            style="height: 38px; width: auto; display: inline-flex; align-items: center;"><i class="fas fa-plus"
-                style="margin-right: 0.5rem;"></i>生成新 Token</button>
+        <button type="submit" class="btn btn-sm w-auto d-inline-flex align-center">
+            <i class="fas fa-plus mr-2"></i>生成新 Token
+        </button>
     </form>
 </div>
 
-<!-- Tokens Table / List -->
+<!-- Table -->
 <div class="table-card">
     <div class="table-responsive">
         <table>
@@ -79,7 +73,7 @@
                     </td>
                     <td>
                         {{if not .IsRevoked}}
-                        <form action="/admin/tokens/revoke" method="POST" style="margin: 0; display:inline;">
+                        <form action="/admin/tokens/revoke" method="POST" class="m-0 d-inline">
                             <input type="hidden" name="token" value="{{.Token}}">
                             <input type="hidden" name="app_id" value="{{$.AppID}}">
                             <input type="hidden" name="version" value="{{$.Version}}">
@@ -92,8 +86,7 @@
                 </tr>
                 {{else}}
                 <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">该版本尚无已发放的 Token
-                    </td>
+                    <td colspan="5" class="table-empty-row">该版本尚无已发放的 Token</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -110,7 +103,7 @@
             <button class="modal-close" onclick="closeModal('token-result-modal')">&times;</button>
         </div>
         <div class="modal-body">
-            <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+            <p class="font-sm text-muted mb-4">
                 请复制生成的 Access Token，由于安全原因，该完整密匙无法再次从系统查询。
             </p>
             <div class="token-display-box">
@@ -119,12 +112,11 @@
                     <i class="fa-solid fa-copy"></i>
                 </button>
             </div>
-            <div style="font-size: 0.8125rem; color: var(--text-muted);">
-                所属应用: <strong style="color: var(--text-main);">{{.GeneratedTokenAppID}}
-                    (v{{.GeneratedTokenVersion}})</strong>
+            <div class="font-sm text-muted">
+                所属应用: <strong class="text-main">{{.GeneratedTokenAppID}} (v{{.GeneratedTokenVersion}})</strong>
             </div>
-            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">
-                使用平台: <strong style="color: var(--text-main);">{{.GeneratedTokenPlatform}}</strong>
+            <div class="font-sm text-muted mt-2">
+                使用平台: <strong class="text-main">{{.GeneratedTokenPlatform}}</strong>
             </div>
         </div>
         <div class="modal-footer">

@@ -7,8 +7,8 @@
         </div>
         
         {{if .Error}}
-        <div class="alert-error" style="display: block; margin-bottom: 1.25rem;">
-            <i class="fas fa-exclamation-circle" style="margin-right: 0.5rem;"></i>{{.Error}}
+        <div class="alert-error d-block mb-4">
+            <i class="fas fa-exclamation-circle mr-2"></i>{{.Error}}
         </div>
         {{end}}
 
@@ -27,11 +27,11 @@
                 <label for="captcha">验证码</label>
                 <div class="captcha-row">
                     <input type="text" id="captcha" name="captcha_code" class="input-control" placeholder="4位验证码" autocomplete="off" required>
-                    <img src="/admin/captcha" id="captcha-img" onclick="this.src='/admin/captcha?t=' + Math.random()" title="点击刷新验证码" style="cursor: pointer; height: 42px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <img src="/admin/captcha" id="captcha-img" onclick="this.src='/admin/captcha?t=' + Math.random()" title="点击刷新验证码" class="captcha-img">
                 </div>
             </div>
 
-            <button type="submit" class="btn" style="margin-top: 1.5rem;">
+            <button type="submit" class="btn mt-6">
                 <span>安全登录</span>
             </button>
         </form>

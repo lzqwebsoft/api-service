@@ -1,18 +1,17 @@
 {{define "view"}}
 <!-- Page Header -->
-<div class="page-header" style="margin-bottom: 1.5rem;">
-    <h2 style="margin: 0; color: var(--text-main); font-size: 1.25rem; font-weight: 600;">Token 访问黑名单</h2>
-    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">被拉黑的用户 (UUID) 使用对应的 Token 访问 API 将被立即阻断。
+<div class="page-header">
+    <h2 class="page-title">Token 访问黑名单</h2>
+    <p class="page-subtitle">被拉黑的用户 (UUID) 使用对应的 Token 访问 API 将被立即阻断。
     </p>
 </div>
 <!-- Toolbar -->
-<div class="toolbar"
-    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
-    <div class="search-box" style="margin-bottom: 0; max-width: 320px; width: 100%;">
+<div class="toolbar">
+    <div class="search-box search-box-container">
         <i class="fas fa-search search-icon"></i>
         <input type="text" id="blacklist-search" class="input-control" placeholder="搜索 Token 或 UUID...">
     </div>
-    <button onclick="openModal('add-blacklist-modal')" class="btn btn-sm" style="width: auto; height: 38px;"><i
+    <button onclick="openModal('add-blacklist-modal')" class="btn btn-sm w-auto"><i
             class="fas fa-plus"></i> 手动添加黑名单</button>
 </div>
 <!-- Blacklist Table -->
@@ -40,11 +39,11 @@
                     <td><span class="badge badge-version">{{.Platform}}</span></td>
                     <td><span class="badge badge-version">{{.Version}}</span></td>
                     <td>
-                        <strong style="color: var(--danger);">{{.UserUUID}}</strong>
+                        <strong class="text-danger">{{.UserUUID}}</strong>
                     </td>
                     <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
                     <td>
-                        <form action="/admin/blacklist/delete" method="POST" style="margin: 0; display:inline;">
+                        <form action="/admin/blacklist/delete" method="POST" class="m-0 d-inline">
                             <input type="hidden" name="id" value="{{.ID}}">
                             <button type="submit" class="btn btn-danger btn-sm">解除拉黑</button>
                         </form>
@@ -52,7 +51,7 @@
                 </tr>
                 {{else}}
                 <tr>
-                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">当前黑名单内无记录</td>
+                    <td colspan="6" class="table-empty-row">当前黑名单内无记录</td>
                 </tr>
                 {{end}}
             </tbody>

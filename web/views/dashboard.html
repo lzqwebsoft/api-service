@@ -25,13 +25,13 @@
 </div>
 
 <!-- Access Trend Chart -->
-<div class="table-card" style="padding: 1.5rem; margin-top: 1.5rem; position: relative;">
-    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
-        <i class="fas fa-chart-line" style="color: var(--primary);"></i>
+<div class="table-card chart-card-padding">
+    <h3 class="chart-title">
+        <i class="fas fa-chart-line"></i>
         每日 Token 访问趋势 (最近 7 天)
     </h3>
-    <div class="chart-container" style="position: relative; width: 100%; height: 350px;">
-        <svg id="trend-svg" width="100%" height="100%" viewBox="0 0 800 350" preserveAspectRatio="none" style="overflow: visible; display: block;">
+    <div class="chart-container chart-container-pos">
+        <svg id="trend-svg" width="100%" height="100%" viewBox="0 0 800 350" preserveAspectRatio="none" class="chart-svg-elem">
             <defs>
                 <!-- Area gradient -->
                 <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
@@ -57,14 +57,14 @@
             <!-- Data Points Circles -->
             <g id="data-points"></g>
             <!-- Hover vertical guide line -->
-            <line id="hover-line" x1="0" y1="0" x2="0" y2="0" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1.5" stroke-dasharray="2,2" style="display: none; pointer-events: none;" />
+            <line id="hover-line" x1="0" y1="0" x2="0" y2="0" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1.5" stroke-dasharray="2,2" />
         </svg>
         <!-- Overlay HTML Tooltip -->
-        <div id="chart-tooltip" style="position: absolute; display: none; background: rgba(15, 15, 17, 0.95); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; font-size: 0.8125rem; pointer-events: none; box-shadow: var(--shadow-lg); z-index: 10; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-            <div id="tooltip-date" style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 4px;"></div>
-            <div style="font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
-                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--primary);"></span>
-                访问次数: <span id="tooltip-value" style="color: #ffffff;"></span>
+        <div id="chart-tooltip" class="chart-tooltip-elem">
+            <div id="tooltip-date" class="tooltip-date"></div>
+            <div class="tooltip-val-container">
+                <span class="tooltip-dot"></span>
+                访问次数: <span id="tooltip-value" class="tooltip-val"></span>
             </div>
         </div>
     </div>

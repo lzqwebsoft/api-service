@@ -1,17 +1,17 @@
 {{define "view"}}
 <!-- Page Header -->
-<div class="page-header" style="margin-bottom: 1.5rem;">
-    <h2 style="margin: 0; color: var(--text-main); font-size: 1.25rem; font-weight: 600;">应用与 Token 管理</h2>
-    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">注册和管理所有客户端应用版本，并为其生成/分发 Access Token。</p>
+<div class="page-header">
+    <h2 class="page-title">应用与 Token 管理</h2>
+    <p class="page-subtitle">注册和管理所有客户端应用版本，并为其生成/分发 Access Token。</p>
 </div>
 
 <!-- Toolbar -->
-<div class="toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
-    <div class="search-box" style="margin-bottom: 0; max-width: 320px; width: 100%;">
+<div class="toolbar">
+    <div class="search-box search-box-container">
         <i class="fas fa-search search-icon"></i>
         <input type="text" id="search-input" class="input-control" placeholder="搜索 App ID 或名称..." oninput="filterApps()">
     </div>
-    <button onclick="openModal('register-modal')" class="btn btn-sm" style="width: auto; height: 38px;"><i class="fas fa-plus"></i> 注册新应用</button>
+    <button onclick="openModal('register-modal')" class="btn btn-sm w-auto"><i class="fas fa-plus"></i> 注册新应用</button>
 </div>
 
 <!-- Apps Table -->
@@ -39,7 +39,7 @@
                         <span class="badge badge-version">{{.Version}}</span>
                     </td>
                     <td>
-                        <form action="/admin/apps/toggle" method="POST" style="margin: 0; display: inline-block;">
+                        <form action="/admin/apps/toggle" method="POST" class="m-0 d-inline-block">
                             <input type="hidden" name="app_id" value="{{.AppID}}">
                             <input type="hidden" name="version" value="{{.Version}}">
                             <input type="hidden" name="is_active" value="{{if .IsActive}}false{{else}}true{{end}}">
@@ -50,11 +50,11 @@
                         </form>
                     </td>
                     <td>
-                        <div class="actions-cell" style="align-items: center;">
-                            <form action="/admin/tokens/generate" method="POST" style="display:inline-flex; align-items: center; gap: 6px;">
+                        <div class="actions-cell align-center">
+                            <form action="/admin/tokens/generate" method="POST" class="d-inline-flex align-center gap-2">
                                 <input type="hidden" name="app_id" value="{{.AppID}}">
                                 <input type="hidden" name="version" value="{{.Version}}">
-                                <select name="platform" class="input-control" style="width: auto; padding: 0.3rem 0.5rem; font-size: 0.8125rem; border-radius: 6px; height: 32px;" required>
+                                <select name="platform" class="input-control actions-cell-select" required>
                                     <option value="" disabled selected>选择平台</option>
                                     <option value="android">android</option>
                                     <option value="iOS">iOS</option>
@@ -62,19 +62,19 @@
                                     <option value="Linux">Linux</option>
                                     <option value="mac">mac</option>
                                 </select>
-                                <button type="submit" class="btn btn-sm" style="height: 32px; width: auto;">生成 Token</button>
+                                <button type="submit" class="btn btn-sm w-auto">生成 Token</button>
                             </form>
-                            <a href="/admin/tokens?app_id={{urlquery .AppID}}&version={{urlquery .Version}}" class="btn btn-outline btn-sm" style="height: 32px; display: inline-flex; align-items: center;">管理 Token ({{.TokenCount}})</a>
-                            <form action="/admin/apps/delete" method="POST" style="display:inline-flex; margin: 0;" onsubmit="return confirm('确定要删除该应用吗？删除后对应的 App Token 将一并删除！')">
+                            <a href="/admin/tokens?app_id={{urlquery .AppID}}&version={{urlquery .Version}}" class="btn btn-outline btn-sm d-inline-flex align-center">管理 Token ({{.TokenCount}})</a>
+                            <form action="/admin/apps/delete" method="POST" class="d-inline-flex m-0" onsubmit="return confirm('确定要删除该应用吗？删除后对应的 App Token 将一并删除！')">
                                 <input type="hidden" name="app_id" value="{{.AppID}}">
                                 <input type="hidden" name="version" value="{{.Version}}">
-                                <button type="submit" class="btn btn-outline btn-sm" style="height: 32px; display: inline-flex; align-items: center; color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: transparent;" onmouseover="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.borderColor='var(--danger)'" onmouseout="this.style.background='transparent'; this.style.borderColor='rgba(239, 68, 68, 0.3)'">删除</button>
+                                <button type="submit" class="btn btn-outline btn-sm btn-delete-outline">删除</button>
                             </form>
                         </div>
                     </td>
                 </tr>
                 {{else}}
-                <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">暂无应用数据</td></tr>
+                <tr><td colspan="4" class="table-empty-row">暂无应用数据</td></tr>
                 {{end}}
             </tbody>
         </table>
@@ -121,18 +121,18 @@
             <button class="modal-close" onclick="closeModal('token-result-modal')">&times;</button>
         </div>
         <div class="modal-body">
-            <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem;">
+            <p class="font-sm text-muted mb-4">
                 请复制生成的 Access Token，由于安全原因，该完整密匙无法再次从系统查询。
             </p>
             <div class="token-display-box">
                 <span id="generated-token-text" class="token-text">{{.GeneratedToken}}</span>
                 <button onclick="copyGeneratedToken()" class="copy-btn" title="复制到剪贴板"><i class="fas fa-copy"></i></button>
             </div>
-            <div style="font-size: 0.8125rem; color: var(--text-muted);">
-                所属应用: <strong style="color: var(--text-main);">{{.GeneratedTokenAppID}} (v{{.GeneratedTokenVersion}})</strong>
+            <div class="font-sm text-muted">
+                所属应用: <strong class="text-main">{{.GeneratedTokenAppID}} (v{{.GeneratedTokenVersion}})</strong>
             </div>
-            <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">
-                使用平台: <strong style="color: var(--text-main);">{{.GeneratedTokenPlatform}}</strong>
+            <div class="font-sm text-muted mt-2">
+                使用平台: <strong class="text-main">{{.GeneratedTokenPlatform}}</strong>
             </div>
         </div>
         <div class="modal-footer">

@@ -11,6 +11,7 @@ import (
 	"api-service/models"
 	"api-service/repository"
 	"api-service/utils"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -120,7 +121,7 @@ func (s *adminService) CreateUser(ctx context.Context, username, password string
 	if strings.TrimSpace(username) == "" || strings.TrimSpace(password) == "" {
 		return errors.New("username and password cannot be empty")
 	}
-	
+
 	// Check if user already exists
 	existing, err := s.adminRepo.GetUserByUsername(ctx, username)
 	if err != nil {

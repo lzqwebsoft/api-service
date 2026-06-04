@@ -1,13 +1,12 @@
 {{define "view"}}
 <!-- Page Header -->
-<div class="page-header" style="margin-bottom: 1.5rem;">
-    <h2 style="margin: 0; color: var(--text-main); font-size: 1.25rem; font-weight: 600;">Token 访问记录</h2>
-    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">展示客户端最近访问受保护 API 的记录（限制显示最近 100 条）。</p>
+<div class="page-header">
+    <h2 class="page-title">Token 访问记录</h2>
+    <p class="page-subtitle">展示客户端最近访问受保护 API 的记录（限制显示最近 100 条）。</p>
 </div>
 <!-- Toolbar -->
-<div class="toolbar"
-    style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
-    <div class="search-box" style="margin-bottom: 0; max-width: 320px; width: 100%;">
+<div class="toolbar-start">
+    <div class="search-box search-box-container">
         <i class="fas fa-search search-icon"></i>
         <input type="text" id="logs-search" class="input-control" placeholder="搜索 Token、路径、UUID 或 IP...">
     </div>
@@ -38,20 +37,20 @@
                         </span>
                     </td>
                     <td><span
-                            style="font-family: monospace; font-size: 0.85rem; color: var(--text-main);">{{.APIPath}}</span>
+                            class="font-monospace font-sm text-main">{{.APIPath}}</span>
                     </td>
                     <td><span class="badge badge-version">{{.Platform}}</span></td>
                     <td><span class="badge badge-version">{{.Version}}</span></td>
                     <td>
                         {{if .UserUUID}}
                         <span
-                            style="font-family: monospace; font-size: 0.85rem; color: var(--text-main);">{{.UserUUID}}</span>
+                            class="font-monospace font-sm text-main">{{.UserUUID}}</span>
                         {{else}}
-                        <span style="color: var(--text-muted); font-style: italic;">未提供</span>
+                        <span class="text-muted-italic">未提供</span>
                         {{end}}
                     </td>
                     <td><span
-                            style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">{{.IP}}</span>
+                            class="font-monospace font-sm text-muted">{{.IP}}</span>
                     </td>
                     <td>
                         {{if .UserUUID}}
@@ -59,7 +58,7 @@
                         {{if index $.BlacklistedKeys $key}}
                         <span class="badge badge-danger">已拉黑</span>
                         {{else}}
-                        <form action="/admin/logs/blacklist" method="POST" style="margin: 0; display:inline;">
+                        <form action="/admin/logs/blacklist" method="POST" class="m-0 d-inline">
                             <input type="hidden" name="token" value="{{.Token}}">
                             <input type="hidden" name="platform" value="{{.Platform}}">
                             <input type="hidden" name="version" value="{{.Version}}">
@@ -74,7 +73,7 @@
                 </tr>
                 {{else}}
                 <tr>
-                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">当前无访问日志记录</td>
+                    <td colspan="8" class="table-empty-row">当前无访问日志记录</td>
                 </tr>
                 {{end}}
             </tbody>
