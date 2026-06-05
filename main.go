@@ -58,19 +58,24 @@ func main() {
 	calendarService := service.NewCalendarService(calendarRepo)
 
 	// 5. Initialize handlers (Controller Layer)
-	base := admin.NewBaseHandler(embeddedFS)
+	adminBase := admin.NewBaseHandler(embeddedFS)
+	apiBase := api.NewBaseHandler()
 	adminSessionAuth := middleware.AdminSessionMiddleware(adminService)
+	clientAuth := middleware.AuthMiddleware(tokenService)
 
 	controllers := []handler.Controller{
-		admin.NewAuthHandler(base, adminService, adminSessionAuth),
-		admin.NewDashboardHandler(base, appService, tokenService, adminSessionAuth),
-		admin.NewAppHandler(base, appService, tokenService, adminSessionAuth),
-		admin.NewTokenHandler(base, tokenService, appService, adminSessionAuth),
-		admin.NewUserHandler(base, adminService, adminSessionAuth),
-		admin.NewBlacklistHandler(base, tokenService, adminSessionAuth),
-		admin.NewLogHandler(base, tokenService, adminSessionAuth),
-		admin.NewCalendarHandler(base, calendarService, adminSessionAuth),
-		api.NewAPIHandler(tokenService),
+		// 后台数据管理
+		admin.NewAuthHandler(adminBase, adminService, adminSessionAuth),
+		admin.NewDashboardHandler(adminBase, appService, tokenService, adminSessionAuth),
+		admin.NewAppHandler(adminBase, appService, tokenService, adminSessionAuth),
+		admin.NewTokenHandler(adminBase, tokenService, appService, adminSessionAuth),
+		admin.NewUserHandler(adminBase, adminService, adminSessionAuth),
+		admin.NewBlacklistHandler(adminBase, tokenService, adminSessionAuth),
+		admin.NewLogHandler(adminBase, tokenService, adminSessionAuth),
+		admin.NewCalendarHandler(adminBase, calendarService, adminSessionAuth),
+		// 开放API接口
+		api.NewResourceHandler(apiBase, calendarService),
+		api.NewCalendarHandler(apiBase, calendarService, clientAuth),
 	}
 
 	// 6. Register routes

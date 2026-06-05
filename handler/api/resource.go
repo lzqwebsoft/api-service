@@ -2,10 +2,10 @@ package api
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"api-service/handler"
-	"api-service/middleware"
 	"api-service/service"
 )
 
@@ -13,13 +13,15 @@ import (
 // bearer-token authentication (as opposed to admin session cookies).
 type APIHandler struct {
 	*handler.Router
-	tokenService service.TokenService
+	*BaseHandler
+	calendarService service.CalendarService
 }
 
-// NewAPIHandler creates an APIHandler with the required token service
-func NewAPIHandler(tokenService service.TokenService) *APIHandler {
+// NewResourceHandler creates an APIHandler with the required token and calendar services
+func NewResourceHandler(base *BaseHandler, calendarService service.CalendarService) *APIHandler {
 	h := &APIHandler{
-		tokenService: tokenService,
+		BaseHandler:     base,
+		calendarService: calendarService,
 	}
 	h.Router = handler.NewRouter(h)
 	return h
@@ -27,21 +29,90 @@ func NewAPIHandler(tokenService service.TokenService) *APIHandler {
 
 // InitRoutes returns the route configurations.
 func (h *APIHandler) InitRoutes() []handler.Route {
-	clientAuth := middleware.AuthMiddleware(h.tokenService)
 	return []handler.Route{
-		{Method: http.MethodGet, Path: "/api/protected/resource", Handler: h.handleProtectedResource, Middlewares: []func(http.Handler) http.Handler{clientAuth}},
+		{Method: http.MethodGet, Path: "/api/calendar.ics", Handler: h.handleCalendarICS},
 	}
 }
 
-// handleProtectedResource returns authenticated app info as a JSON payload
-func (h *APIHandler) handleProtectedResource(w http.ResponseWriter, r *http.Request) {
-	appID := middleware.GetAppID(r.Context())
-	version := middleware.GetVersion(r.Context())
+// handleCalendarICS returns calendar exceptions in iCalendar (RFC 5545) format without authentication.
+func (h *APIHandler) handleCalendarICS(w http.ResponseWriter, r *http.Request) {
+	exceptions, err := h.calendarService.ListExceptions(r.Context())
+	if err != nil {
+		h.HTTPError(w, r, "Failed to load calendar exceptions: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	handler.JSONResponse(w, http.StatusOK, map[string]interface{}{
-		"message":               "Access granted to protected resource!",
-		"authenticated_app_id":  appID,
-		"authenticated_version": version,
-		"timestamp":             time.Now().Format(time.RFC3339),
-	})
+	var sb strings.Builder
+	sb.WriteString("BEGIN:VCALENDAR\r\n")
+	sb.WriteString("VERSION:2.0\r\n")
+	sb.WriteString("PRODID:-//zqluo.com//Holiday Calendar//CN\r\n")
+	sb.WriteString("CALSCALE:GREGORIAN\r\n")
+	sb.WriteString("METHOD:PUBLISH\r\n")
+	sb.WriteString("X-WR-CALNAME:放假安排\r\n")
+	sb.WriteString("X-WR-TIMEZONE:Asia/Shanghai\r\n")
+
+	for _, e := range exceptions {
+		t, err := time.Parse("2006-01-02", e.Date)
+		if err != nil {
+			continue // skip invalid date entries
+		}
+
+		dtstart := t.Format("20060102")
+		dtend := t.AddDate(0, 0, 1).Format("20060102")
+
+		dtstamp := e.CreatedAt.UTC().Format("20060102T150405Z")
+		if e.CreatedAt.IsZero() {
+			dtstamp = time.Now().UTC().Format("20060102T150405Z")
+		}
+
+		desc := e.Description
+		if desc == "" {
+			if e.IsWorkday {
+				desc = "调休工作日"
+			} else {
+				desc = "放假休息日"
+			}
+		}
+
+		prefix := "[假]"
+		if e.IsWorkday {
+			prefix = "[班]"
+		}
+		summary := prefix + " " + desc
+
+		sb.WriteString("BEGIN:VEVENT\r\n")
+		sb.WriteString("UID:")
+		sb.WriteString(dtstart)
+		sb.WriteString("-exception@api-service\r\n")
+
+		sb.WriteString("DTSTAMP:")
+		sb.WriteString(dtstamp)
+		sb.WriteString("\r\n")
+
+		sb.WriteString("DTSTART;VALUE=DATE:")
+		sb.WriteString(dtstart)
+		sb.WriteString("\r\n")
+
+		sb.WriteString("DTEND;VALUE=DATE:")
+		sb.WriteString(dtend)
+		sb.WriteString("\r\n")
+
+		sb.WriteString("SUMMARY:")
+		sb.WriteString(summary)
+		sb.WriteString("\r\n")
+
+		sb.WriteString("DESCRIPTION:")
+		sb.WriteString(desc)
+		sb.WriteString("\r\n")
+
+		sb.WriteString("END:VEVENT\r\n")
+	}
+
+	sb.WriteString("END:VCALENDAR\r\n")
+
+	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"calendar.ics\"")
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(sb.String()))
 }
