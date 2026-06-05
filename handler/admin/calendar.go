@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"sort"
 
 	"api-service/handler"
 	"api-service/middleware"
@@ -51,13 +52,23 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 
 	holidayCount := 0
 	workdayCount := 0
+	yearsMap := make(map[string]bool)
 	for _, e := range exceptions {
+		if len(e.Date) >= 4 {
+			yearsMap[e.Date[:4]] = true
+		}
 		if e.IsWorkday {
 			workdayCount++
 		} else {
 			holidayCount++
 		}
 	}
+
+	var years []string
+	for y := range yearsMap {
+		years = append(years, y)
+	}
+	sort.Strings(years)
 
 	h.Render(w, "calendar", map[string]interface{}{
 		"Title":        "节假日安排",
@@ -67,6 +78,7 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 		"TotalCount":   len(exceptions),
 		"HolidayCount": holidayCount,
 		"WorkdayCount": workdayCount,
+		"YearsCovered": years,
 		"Error":        r.URL.Query().Get("error"),
 		"Success":      r.URL.Query().Get("success"),
 	})

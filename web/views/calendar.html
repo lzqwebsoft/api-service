@@ -28,6 +28,23 @@
         </div>
         <div class="stat-icon"><i class="fas fa-briefcase text-success"></i></div>
     </div>
+    <div class="stat-card grid-span-full">
+        <div class="stat-info" style="flex: 1; min-width: 0;">
+            <h3>涵盖年份 <small style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(点击过滤)</small>
+            </h3>
+            <div id="stat-years" class="year-tags-container" style="margin-top: 8px;">
+                <span class="year-tag active" onclick="filterByYear('')" data-year="">全部</span>
+                {{if .YearsCovered}}
+                {{range .YearsCovered}}
+                <span class="year-tag" onclick="filterByYear('{{.}}')" data-year="{{.}}">{{.}}</span>
+                {{end}}
+                {{else}}
+                <span class="text-muted" style="font-size: 0.875rem;">无数据</span>
+                {{end}}
+            </div>
+        </div>
+        <div class="stat-icon"><i class="fas fa-calendar-day" style="color: #3b82f6;"></i></div>
+    </div>
 </div>
 
 <!-- Toolbar -->
@@ -169,36 +186,57 @@
 
 <script src="/public/js/dashboard.js"></script>
 <script>
+    let activeYearFilter = '';
+
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('calendar-search');
-        const tbody = document.getElementById('calendar-table-body');
-        if (!searchInput || !tbody) return;
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+    });
 
-        searchInput.addEventListener('input', () => {
-            const val = searchInput.value.toLowerCase().trim();
-            const rows = tbody.querySelectorAll('tr');
+    function filterByYear(year) {
+        activeYearFilter = year;
 
-            rows.forEach(row => {
-                // Skip empty-data placeholder row
-                if (row.cells.length === 1 && row.cells[0].getAttribute('colspan')) return;
-
-                // Collect searchable text: date, type badge, description (skip created_at & actions)
-                const date = (row.cells[0] && row.cells[0].textContent || '').toLowerCase();
-                const type = (row.cells[1] && row.cells[1].textContent || '').toLowerCase();
-                const desc = (row.cells[2] && row.cells[2].textContent || '').toLowerCase();
-
-                const match = !val || date.includes(val) || type.includes(val) || desc.includes(val);
-                row.style.display = match ? '' : 'none';
-            });
-
-            // Reset paginator to page 1 after filtering
-            const table = tbody.closest('table');
-            if (table && table.paginator) {
-                table.paginator.currentPage = 1;
-                table.paginator.update();
+        // Update tag active states
+        document.querySelectorAll('.year-tag').forEach(tag => {
+            if (tag.getAttribute('data-year') === year) {
+                tag.classList.add('active');
+            } else {
+                tag.classList.remove('active');
             }
         });
-    });
+
+        applyFilters();
+    }
+
+    function applyFilters() {
+        const searchInput = document.getElementById('calendar-search');
+        const tbody = document.getElementById('calendar-table-body');
+        if (!tbody) return;
+
+        const val = searchInput && searchInput.value ? searchInput.value.toLowerCase().trim() : '';
+        const rows = tbody.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            if (row.cells.length === 1 && row.cells[0].getAttribute('colspan')) return;
+
+            const date = (row.cells[0] && row.cells[0].textContent || '').toLowerCase();
+            const type = (row.cells[1] && row.cells[1].textContent || '').toLowerCase();
+            const desc = (row.cells[2] && row.cells[2].textContent || '').toLowerCase();
+
+            const textMatch = !val || date.includes(val) || type.includes(val) || desc.includes(val);
+            const yearMatch = !activeYearFilter || date.startsWith(activeYearFilter);
+
+            row.style.display = (textMatch && yearMatch) ? '' : 'none';
+        });
+
+        const table = tbody.closest('table');
+        if (table && table.paginator) {
+            table.paginator.currentPage = 1;
+            table.paginator.update();
+        }
+    }
 
     function openEditCalendarModal(date, isWorkday, description) {
         document.getElementById('edit-date').value = date;

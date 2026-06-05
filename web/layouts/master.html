@@ -56,7 +56,7 @@
                 </div>
                 <ul class="sidebar-menu">
                     <!-- Dashboard Menu -->
-                    <li id="menu-dashboard" class="menu-item {{if eq .ActiveTab " dashboard"}}active{{end}}"
+                    <li id="menu-dashboard" class="menu-item {{if eq .ActiveTab `dashboard`}}active{{end}}"
                         onclick="location.href='/admin'" title="控制面板">
                         <span class="menu-icon"><i class="fas fa-chart-line"></i></span>
                         <span class="menu-text">控制面板</span>
@@ -64,25 +64,24 @@
 
                     <!-- Parent Token Management Menu -->
                     <li class="menu-group">
-                        <div class="menu-item menu-item-parent {{if or (eq .ActiveTab " apps") (eq
-                            .ActiveTab "blacklist" ) (eq .ActiveTab "logs" )}}active{{end}}"
+                        <div class="menu-item menu-item-parent {{if or (eq .ActiveTab `apps`) (eq .ActiveTab `blacklist`) (eq .ActiveTab `logs`)}}active{{end}}"
                             onclick="toggleSubmenu(event)" title="Token 管理">
                             <span class="menu-icon"><i class="fas fa-key"></i></span>
                             <span class="menu-text">Token 管理</span>
                             <i class="fas fa-chevron-down submenu-arrow" id="arrow-icon"></i>
                         </div>
                         <ul class="submenu" id="submenu-token" style="display: none;">
-                            <li class="submenu-item {{if eq .ActiveTab " apps"}}active{{end}}"
+                            <li class="submenu-item {{if eq .ActiveTab `apps`}}active{{end}}"
                                 onclick="location.href='/admin/apps'" title="应用与Token">
                                 <span class="menu-icon"><i class="fas fa-list"></i></span>
                                 <span class="menu-text">应用与Token</span>
                             </li>
-                            <li class="submenu-item {{if eq .ActiveTab " blacklist"}}active{{end}}"
+                            <li class="submenu-item {{if eq .ActiveTab `blacklist`}}active{{end}}"
                                 onclick="location.href='/admin/blacklist'" title="Token 黑名单">
                                 <span class="menu-icon"><i class="fas fa-ban"></i></span>
                                 <span class="menu-text">Token 黑名单</span>
                             </li>
-                            <li class="submenu-item {{if eq .ActiveTab " logs"}}active{{end}}"
+                            <li class="submenu-item {{if eq .ActiveTab `logs`}}active{{end}}"
                                 onclick="location.href='/admin/logs'" title="访问记录">
                                 <span class="menu-icon"><i class="fas fa-history"></i></span>
                                 <span class="menu-text">访问记录</span>
@@ -90,13 +89,13 @@
                         </ul>
                     </li>
 
-                    <li id="menu-calendar" class="menu-item {{if eq .ActiveTab "calendar"}}active{{end}}"
+                    <li id="menu-calendar" class="menu-item {{if eq .ActiveTab `calendar`}}active{{end}}"
                         onclick="location.href='/admin/calendar'" title="节假日安排">
                         <span class="menu-icon"><i class="fas fa-calendar-alt"></i></span>
                         <span class="menu-text">节假日安排</span>
                     </li>
 
-                    <li id="menu-users" class="menu-item {{if eq .ActiveTab " users"}}active{{end}}"
+                    <li id="menu-users" class="menu-item {{if eq .ActiveTab `users`}}active{{end}}"
                         onclick="location.href='/admin/users'" title="用户管理">
                         <span class="menu-icon"><i class="fas fa-users-cog"></i></span>
                         <span class="menu-text">用户管理</span>
