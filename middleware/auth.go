@@ -86,26 +86,43 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 				return
 			}
 
-			// Extract client contextual metadata
-			userUUID := r.URL.Query().Get("user_uuid")
+			// Extract client contextual metadata from headers only
+			userUUID := r.Header.Get("X-User-UUID")
 			if userUUID == "" {
-				userUUID = r.Header.Get("X-User-UUID")
+				errorResponse(w, http.StatusBadRequest, "X-User-UUID header is required")
+				return
 			}
 
-			platform := r.URL.Query().Get("platform")
+			platform := r.Header.Get("X-Platform")
 			if platform == "" {
-				platform = r.Header.Get("X-Platform")
-			}
-			if platform == "" {
-				platform = details.Platform
+				errorResponse(w, http.StatusBadRequest, "X-Platform header is required")
+				return
 			}
 
-			version := r.URL.Query().Get("version")
+			version := r.Header.Get("X-Version")
 			if version == "" {
-				version = r.Header.Get("X-Version")
+				errorResponse(w, http.StatusBadRequest, "X-Version header is required")
+				return
 			}
-			if version == "" {
-				version = details.Version
+
+			appID := r.Header.Get("X-App-ID")
+			if appID == "" {
+				errorResponse(w, http.StatusBadRequest, "X-App-ID header is required")
+				return
+			}
+
+			// Verify metadata consistency with database token configuration (case-insensitive)
+			if !strings.EqualFold(appID, details.AppID) {
+				errorResponse(w, http.StatusUnauthorized, "App ID does not match token configuration")
+				return
+			}
+			if !strings.EqualFold(platform, details.Platform) {
+				errorResponse(w, http.StatusUnauthorized, "Platform does not match token configuration")
+				return
+			}
+			if !strings.EqualFold(version, details.Version) {
+				errorResponse(w, http.StatusUnauthorized, "Version does not match token configuration")
+				return
 			}
 
 			clientIP := getIP(r)
