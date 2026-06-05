@@ -3,12 +3,14 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
 
 	"api-service/models"
 	"api-service/service"
+	logger "api-service/utils"
 )
 
 type contextKey string
@@ -32,6 +34,33 @@ func errorResponse(w http.ResponseWriter, statusCode int, errMsg string) {
 		Success: false,
 		Error:   errMsg,
 	})
+}
+
+func logAndErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, errMsg string, details ...string) {
+	clientIP := getIP(r)
+	authHeader := r.Header.Get("Authorization")
+	appID := r.Header.Get("X-App-ID")
+	userUUID := r.Header.Get("X-User-UUID")
+	platform := r.Header.Get("X-Platform")
+	version := r.Header.Get("X-Version")
+
+	detailStr := ""
+	if len(details) > 0 {
+		detailStr = " | Details: " + strings.Join(details, "; ")
+	}
+
+	logMsg := fmt.Sprintf(
+		"Auth Failure: %s %s | IP: %s | Headers: [Authorization: %q, X-App-ID: %q, X-User-UUID: %q, X-Platform: %q, X-Version: %q] | Response: [%d] %s%s",
+		r.Method, r.URL.RequestURI(), clientIP, authHeader, appID, userUUID, platform, version, statusCode, errMsg, detailStr,
+	)
+
+	if statusCode >= 500 {
+		logger.Errorf("%s", logMsg)
+	} else {
+		logger.Warnf("%s", logMsg)
+	}
+
+	errorResponse(w, statusCode, errMsg)
 }
 
 func getIP(r *http.Request) string {
@@ -59,13 +88,13 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				errorResponse(w, http.StatusUnauthorized, "Authorization header is required")
+				logAndErrorResponse(w, r, http.StatusUnauthorized, "Authorization header is required")
 				return
 			}
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-				errorResponse(w, http.StatusUnauthorized, "Authorization header format must be 'Bearer <token>'")
+				logAndErrorResponse(w, r, http.StatusUnauthorized, "Authorization header format must be 'Bearer <token>'")
 				return
 			}
 
@@ -75,13 +104,13 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 				// Handle dynamic validation failures with appropriate error responses
 				switch err {
 				case service.ErrInvalidToken:
-					errorResponse(w, http.StatusUnauthorized, "Invalid access token")
+					logAndErrorResponse(w, r, http.StatusUnauthorized, "Invalid access token", err.Error())
 				case service.ErrTokenRevoked:
-					errorResponse(w, http.StatusUnauthorized, "Token has been revoked")
+					logAndErrorResponse(w, r, http.StatusUnauthorized, "Token has been revoked", err.Error())
 				case service.ErrAppInactive:
-					errorResponse(w, http.StatusUnauthorized, "Associated application version is inactive")
+					logAndErrorResponse(w, r, http.StatusUnauthorized, "Associated application version is inactive", err.Error())
 				default:
-					errorResponse(w, http.StatusInternalServerError, "Internal token validation error")
+					logAndErrorResponse(w, r, http.StatusInternalServerError, "Internal token validation error", err.Error())
 				}
 				return
 			}
@@ -89,39 +118,39 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 			// Extract client contextual metadata from headers only
 			userUUID := r.Header.Get("X-User-UUID")
 			if userUUID == "" {
-				errorResponse(w, http.StatusBadRequest, "X-User-UUID header is required")
+				logAndErrorResponse(w, r, http.StatusBadRequest, "X-User-UUID header is required")
 				return
 			}
 
 			platform := r.Header.Get("X-Platform")
 			if platform == "" {
-				errorResponse(w, http.StatusBadRequest, "X-Platform header is required")
+				logAndErrorResponse(w, r, http.StatusBadRequest, "X-Platform header is required")
 				return
 			}
 
 			version := r.Header.Get("X-Version")
 			if version == "" {
-				errorResponse(w, http.StatusBadRequest, "X-Version header is required")
+				logAndErrorResponse(w, r, http.StatusBadRequest, "X-Version header is required")
 				return
 			}
 
 			appID := r.Header.Get("X-App-ID")
 			if appID == "" {
-				errorResponse(w, http.StatusBadRequest, "X-App-ID header is required")
+				logAndErrorResponse(w, r, http.StatusBadRequest, "X-App-ID header is required")
 				return
 			}
 
 			// Verify metadata consistency with database token configuration (case-insensitive)
 			if !strings.EqualFold(appID, details.AppID) {
-				errorResponse(w, http.StatusUnauthorized, "App ID does not match token configuration")
+				logAndErrorResponse(w, r, http.StatusUnauthorized, "App ID does not match token configuration", fmt.Sprintf("Header: %q, TokenConfig: %q", appID, details.AppID))
 				return
 			}
 			if !strings.EqualFold(platform, details.Platform) {
-				errorResponse(w, http.StatusUnauthorized, "Platform does not match token configuration")
+				logAndErrorResponse(w, r, http.StatusUnauthorized, "Platform does not match token configuration", fmt.Sprintf("Header: %q, TokenConfig: %q", platform, details.Platform))
 				return
 			}
 			if !strings.EqualFold(version, details.Version) {
-				errorResponse(w, http.StatusUnauthorized, "Version does not match token configuration")
+				logAndErrorResponse(w, r, http.StatusUnauthorized, "Version does not match token configuration", fmt.Sprintf("Header: %q, TokenConfig: %q", version, details.Version))
 				return
 			}
 
@@ -141,7 +170,7 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 			// Verify if the token is blacklisted for this user
 			isBlocked, err := tokenService.IsBlacklisted(r.Context(), tokenStr, userUUID)
 			if err == nil && isBlocked {
-				errorResponse(w, http.StatusUnauthorized, "Token has been blacklisted for this user")
+				logAndErrorResponse(w, r, http.StatusUnauthorized, "Token has been blacklisted for this user")
 				return
 			}
 
