@@ -65,7 +65,7 @@
                     <!-- Parent Token Management Menu -->
                     <li class="menu-group">
                         <div class="menu-item menu-item-parent {{if or (eq .ActiveTab `apps`) (eq .ActiveTab `blacklist`) (eq .ActiveTab `logs`)}}active{{end}}"
-                            onclick="toggleSubmenu(event)" title="Token 管理">
+                            onclick="toggleSubmenu(event, 'submenu-token', 'arrow-icon', 'submenu_token_collapsed')" title="Token 管理">
                             <span class="menu-icon"><i class="fas fa-key"></i></span>
                             <span class="menu-text">Token 管理</span>
                             <i class="fas fa-chevron-down submenu-arrow" id="arrow-icon"></i>
@@ -89,10 +89,26 @@
                         </ul>
                     </li>
 
-                    <li id="menu-calendar" class="menu-item {{if eq .ActiveTab `calendar`}}active{{end}}"
-                        onclick="location.href='/admin/calendar'" title="节假日安排">
-                        <span class="menu-icon"><i class="fas fa-calendar-alt"></i></span>
-                        <span class="menu-text">节假日安排</span>
+                    <!-- Parent Calendar/Holiday Management Menu -->
+                    <li class="menu-group">
+                        <div class="menu-item menu-item-parent {{if or (eq .ActiveTab `calendar`) (eq .ActiveTab `holiday`)}}active{{end}}"
+                            onclick="toggleSubmenu(event, 'submenu-calendar', 'arrow-calendar-icon', 'submenu_calendar_collapsed')" title="节假日管理">
+                            <span class="menu-icon"><i class="fas fa-calendar-week"></i></span>
+                            <span class="menu-text">节假日管理</span>
+                            <i class="fas fa-chevron-down submenu-arrow" id="arrow-calendar-icon"></i>
+                        </div>
+                        <ul class="submenu" id="submenu-calendar" style="display: none;">
+                            <li class="submenu-item {{if eq .ActiveTab `calendar`}}active{{end}}"
+                                onclick="location.href='/admin/calendar'" title="节假日安排">
+                                <span class="menu-icon"><i class="fas fa-calendar-alt"></i></span>
+                                <span class="menu-text">节假日安排</span>
+                            </li>
+                            <li class="submenu-item {{if eq .ActiveTab `holiday`}}active{{end}}"
+                                onclick="location.href='/admin/holiday'" title="节日定义">
+                                <span class="menu-icon"><i class="fas fa-umbrella-beach"></i></span>
+                                <span class="menu-text">节日定义</span>
+                            </li>
+                        </ul>
                     </li>
 
                     <li id="menu-users" class="menu-item {{if eq .ActiveTab `users`}}active{{end}}"
@@ -157,6 +173,21 @@
                     if (arrow) arrow.className = 'fas fa-chevron-down submenu-arrow';
                 }
             }
+
+            const calSubmenu = document.getElementById('submenu-calendar');
+            const calArrow = document.getElementById('arrow-calendar-icon');
+            const isCalSubmenuCollapsed = localStorage.getItem('submenu_calendar_collapsed') === 'true';
+            const isOnCalSubmenuPage = activeTab === "calendar" || activeTab === "holiday";
+
+            if (calSubmenu) {
+                if (isOnCalSubmenuPage || !isCalSubmenuCollapsed) {
+                    calSubmenu.style.display = 'block';
+                    if (calArrow) calArrow.className = 'fas fa-chevron-up submenu-arrow';
+                } else {
+                    calSubmenu.style.display = 'none';
+                    if (calArrow) calArrow.className = 'fas fa-chevron-down submenu-arrow';
+                }
+            }
         })();
 
         function toggleTheme() {
@@ -200,12 +231,12 @@
             }
         }
 
-        function toggleSubmenu(event) {
+        function toggleSubmenu(event, submenuId, arrowId, storageKey) {
             if (event) {
                 event.stopPropagation();
             }
-            const submenu = document.getElementById('submenu-token');
-            const arrow = document.getElementById('arrow-icon');
+            const submenu = document.getElementById(submenuId);
+            const arrow = document.getElementById(arrowId);
             if (!submenu) return;
 
             const isHidden = submenu.style.display === 'none';
@@ -213,7 +244,7 @@
             if (arrow) {
                 arrow.className = isHidden ? 'fas fa-chevron-up submenu-arrow' : 'fas fa-chevron-down submenu-arrow';
             }
-            localStorage.setItem('submenu_token_collapsed', isHidden ? 'false' : 'true');
+            localStorage.setItem(storageKey, isHidden ? 'false' : 'true');
         }
 
         document.addEventListener('DOMContentLoaded', () => {

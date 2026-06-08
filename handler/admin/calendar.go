@@ -43,8 +43,9 @@ func (h *CalendarHandler) InitRoutes() []handler.Route {
 // handleCalendarList renders the holiday exceptions table view
 func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Request) {
 	username := middleware.GetAdminUsername(r.Context())
+	region := r.URL.Query().Get("region")
 
-	exceptions, err := h.calendarService.ListExceptions(r.Context())
+	exceptions, err := h.calendarService.ListExceptions(r.Context(), region)
 	if err != nil {
 		h.HTTPError(w, r, "Failed to load calendar exceptions: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -79,6 +80,7 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 		"HolidayCount": holidayCount,
 		"WorkdayCount": workdayCount,
 		"YearsCovered": years,
+		"Region":       region,
 		"Error":        r.URL.Query().Get("error"),
 		"Success":      r.URL.Query().Get("success"),
 	})
@@ -92,24 +94,30 @@ func (h *CalendarHandler) handleCalendarAdd(w http.ResponseWriter, r *http.Reque
 	}
 
 	date := r.FormValue("date")
+	region := r.FormValue("region")
 	isWorkdayStr := r.FormValue("is_workday")
 	description := r.FormValue("description")
 
 	isWorkday := isWorkdayStr == "1"
 
+	if region == "" {
+		region = "cn"
+	}
+
 	entry := &models.CalendarException{
 		Date:        date,
+		Region:      region,
 		IsWorkday:   isWorkday,
 		Description: description,
 	}
 
 	err := h.calendarService.AddException(r.Context(), entry)
 	if err != nil {
-		http.Redirect(w, r, "/admin/calendar?error=添加例外日期失败: "+err.Error(), http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/calendar?region="+region+"&error=添加例外日期失败: "+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/calendar?success=例外日期添加成功", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/calendar?region="+region+"&success=例外日期添加成功", http.StatusSeeOther)
 }
 
 // handleCalendarUpdate processes updating an exception entry
@@ -120,24 +128,30 @@ func (h *CalendarHandler) handleCalendarUpdate(w http.ResponseWriter, r *http.Re
 	}
 
 	date := r.FormValue("date")
+	region := r.FormValue("region")
 	isWorkdayStr := r.FormValue("is_workday")
 	description := r.FormValue("description")
 
 	isWorkday := isWorkdayStr == "1"
 
+	if region == "" {
+		region = "cn"
+	}
+
 	entry := &models.CalendarException{
 		Date:        date,
+		Region:      region,
 		IsWorkday:   isWorkday,
 		Description: description,
 	}
 
 	err := h.calendarService.UpdateException(r.Context(), entry)
 	if err != nil {
-		http.Redirect(w, r, "/admin/calendar?error=更新例外日期失败: "+err.Error(), http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/calendar?region="+region+"&error=更新例外日期失败: "+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/calendar?success=例外日期更新成功", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/calendar?region="+region+"&success=例外日期更新成功", http.StatusSeeOther)
 }
 
 // handleCalendarDelete processes deleting an exception entry
@@ -148,12 +162,17 @@ func (h *CalendarHandler) handleCalendarDelete(w http.ResponseWriter, r *http.Re
 	}
 
 	date := r.FormValue("date")
+	region := r.FormValue("region")
 
-	err := h.calendarService.DeleteException(r.Context(), date)
+	if region == "" {
+		region = "cn"
+	}
+
+	err := h.calendarService.DeleteException(r.Context(), date, region)
 	if err != nil {
-		http.Redirect(w, r, "/admin/calendar?error=删除例外日期失败: "+err.Error(), http.StatusSeeOther)
+		http.Redirect(w, r, "/admin/calendar?region="+region+"&error=删除例外日期失败: "+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/calendar?success=例外日期已成功删除", http.StatusSeeOther)
+	http.Redirect(w, r, "/admin/calendar?region="+region+"&success=例外日期已成功删除", http.StatusSeeOther)
 }

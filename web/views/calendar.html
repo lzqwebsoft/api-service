@@ -48,10 +48,16 @@
 </div>
 
 <!-- Toolbar -->
-<div class="toolbar">
+<div class="toolbar" style="flex-wrap: wrap; gap: 15px;">
     <div class="search-box search-box-container">
         <i class="fas fa-search search-icon"></i>
-        <input type="text" id="calendar-search" class="input-control" placeholder="搜索日期、事由或类型...">
+        <input type="text" id="calendar-search" class="input-control" placeholder="搜索日期、地区、类型或事由...">
+    </div>
+    <div class="d-flex gap-2 align-items-center" style="margin-right: auto;">
+        <span class="year-tag {{if eq .Region ""}}active{{end}}" onclick="location.href='/admin/calendar'">全部地区</span>
+        <span class="year-tag {{if eq .Region "cn"}}active{{end}}" onclick="location.href='/admin/calendar?region=cn'">中国大陆</span>
+        <span class="year-tag {{if eq .Region "hk"}}active{{end}}" onclick="location.href='/admin/calendar?region=hk'">香港</span>
+        <span class="year-tag {{if eq .Region "tw"}}active{{end}}" onclick="location.href='/admin/calendar?region=tw'">台湾</span>
     </div>
     <button onclick="openModal('add-calendar-modal')" class="btn btn-sm w-auto">
         <i class="fas fa-plus"></i>
@@ -66,6 +72,7 @@
             <thead>
                 <tr>
                     <th>日期</th>
+                    <th>地区</th>
                     <th>类型</th>
                     <th>事由 (描述)</th>
                     <th>创建时间</th>
@@ -76,6 +83,7 @@
                 {{range .Exceptions}}
                 <tr>
                     <td><strong class="text-main">{{.Date}}</strong></td>
+                    <td><span class="badge" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-main);">{{if eq .Region "cn"}}中国大陆{{else if eq .Region "hk"}}香港{{else if eq .Region "tw"}}台湾{{else}}{{.Region}}{{end}}</span></td>
                     <td>
                         {{if .IsWorkday}}
                         <span class="badge badge-active"
@@ -91,13 +99,14 @@
                         <div class="d-flex gap-2">
                             <!-- Edit Button -->
                             <button class="btn btn-outline btn-sm"
-                                onclick="openEditCalendarModal('{{.Date}}', '{{if .IsWorkday}}1{{else}}0{{end}}', '{{.Description}}')">
+                                onclick="openEditCalendarModal('{{.Date}}', '{{.Region}}', '{{if .IsWorkday}}1{{else}}0{{end}}', '{{.Description}}')">
                                 编辑
                             </button>
                             <!-- Delete Form -->
                             <form action="/admin/calendar/delete" method="POST" class="m-0 d-inline"
-                                onsubmit="return confirm('确定要删除 {{.Date}} 的例外安排吗？')">
+                                onsubmit="return confirm('确定要删除 {{.Region}} - {{.Date}} 的例外安排吗？')">
                                 <input type="hidden" name="date" value="{{.Date}}">
+                                <input type="hidden" name="region" value="{{.Region}}">
                                 <button type="submit" class="btn btn-danger btn-sm">删除</button>
                             </form>
                         </div>
@@ -105,7 +114,7 @@
                 </tr>
                 {{else}}
                 <tr>
-                    <td colspan="5" class="table-empty-row">暂无例外日期数据</td>
+                    <td colspan="7" class="table-empty-row">暂无例外日期数据</td>
                 </tr>
                 {{end}}
             </tbody>
@@ -127,12 +136,21 @@
                     <input type="date" id="add-date" name="date" class="input-control" required>
                 </div>
                 <div class="form-group">
+                    <label for="add-region">地区</label>
+                    <select id="add-region" name="region" class="input-control" required>
+                        <option value="cn" selected>中国大陆</option>
+                        <option value="hk">香港</option>
+                        <option value="tw">台湾</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="add-is-workday">类型</label>
                     <select id="add-is-workday" name="is_workday" class="input-control" required>
                         <option value="0">休息 (原本上班却放假)</option>
                         <option value="1">上班 (原本休息却上班/调休)</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label for="add-description">事由 (描述)</label>
                     <input type="text" id="add-description" name="description" class="input-control"
@@ -157,10 +175,16 @@
         </div>
         <form id="edit-calendar-form" action="/admin/calendar/update" method="POST">
             <input type="hidden" id="edit-date" name="date">
+            <input type="hidden" id="edit-region" name="region">
             <div class="modal-body">
                 <div class="form-group">
                     <label>日期</label>
                     <input type="text" id="edit-date-display" class="input-control" disabled
+                        style="cursor: not-allowed; opacity: 0.6;">
+                </div>
+                <div class="form-group">
+                    <label>地区</label>
+                    <input type="text" id="edit-region-display" class="input-control" disabled
                         style="cursor: not-allowed; opacity: 0.6;">
                 </div>
                 <div class="form-group">
@@ -170,6 +194,7 @@
                         <option value="1">上班 (原本休息却上班/调休)</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label for="edit-description">事由 (描述)</label>
                     <input type="text" id="edit-description" name="description" class="input-control" required>
@@ -202,7 +227,7 @@
         document.querySelectorAll('.year-tag').forEach(tag => {
             if (tag.getAttribute('data-year') === year) {
                 tag.classList.add('active');
-            } else {
+            } else if (tag.hasAttribute('data-year')) {
                 tag.classList.remove('active');
             }
         });
@@ -222,10 +247,11 @@
             if (row.cells.length === 1 && row.cells[0].getAttribute('colspan')) return;
 
             const date = (row.cells[0] && row.cells[0].textContent || '').toLowerCase();
-            const type = (row.cells[1] && row.cells[1].textContent || '').toLowerCase();
-            const desc = (row.cells[2] && row.cells[2].textContent || '').toLowerCase();
+            const region = (row.cells[1] && row.cells[1].textContent || '').toLowerCase();
+            const type = (row.cells[2] && row.cells[2].textContent || '').toLowerCase();
+            const desc = (row.cells[3] && row.cells[3].textContent || '').toLowerCase();
 
-            const textMatch = !val || date.includes(val) || type.includes(val) || desc.includes(val);
+            const textMatch = !val || date.includes(val) || region.includes(val) || type.includes(val) || desc.includes(val);
             const yearMatch = !activeYearFilter || date.startsWith(activeYearFilter);
 
             row.style.display = (textMatch && yearMatch) ? '' : 'none';
@@ -238,9 +264,17 @@
         }
     }
 
-    function openEditCalendarModal(date, isWorkday, description) {
+    function openEditCalendarModal(date, region, isWorkday, description) {
         document.getElementById('edit-date').value = date;
         document.getElementById('edit-date-display').value = date;
+        document.getElementById('edit-region').value = region;
+        
+        let regionDisplay = region;
+        if (region === 'cn') regionDisplay = '中国大陆';
+        else if (region === 'hk') regionDisplay = '香港';
+        else if (region === 'tw') regionDisplay = '台湾';
+        document.getElementById('edit-region-display').value = regionDisplay;
+        
         document.getElementById('edit-is-workday').value = isWorkday;
         document.getElementById('edit-description').value = description;
         openModal('edit-calendar-modal');

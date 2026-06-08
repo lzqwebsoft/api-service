@@ -36,7 +36,12 @@ func (h *APIHandler) InitRoutes() []handler.Route {
 
 // handleCalendarICS returns calendar exceptions in iCalendar (RFC 5545) format without authentication.
 func (h *APIHandler) handleCalendarICS(w http.ResponseWriter, r *http.Request) {
-	exceptions, err := h.calendarService.ListExceptions(r.Context())
+	region := r.URL.Query().Get("region")
+	if region == "" {
+		region = "cn"
+	}
+
+	exceptions, err := h.calendarService.ListExceptions(r.Context(), region)
 	if err != nil {
 		h.HTTPError(w, r, "Failed to load calendar exceptions: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -48,7 +53,9 @@ func (h *APIHandler) handleCalendarICS(w http.ResponseWriter, r *http.Request) {
 	sb.WriteString("PRODID:-//zqluo.com//Holiday Calendar//CN\r\n")
 	sb.WriteString("CALSCALE:GREGORIAN\r\n")
 	sb.WriteString("METHOD:PUBLISH\r\n")
-	sb.WriteString("X-WR-CALNAME:放假安排\r\n")
+	sb.WriteString("X-WR-CALNAME:放假安排 - ")
+	sb.WriteString(region)
+	sb.WriteString("\r\n")
 	sb.WriteString("X-WR-TIMEZONE:Asia/Shanghai\r\n")
 
 	for _, e := range exceptions {
@@ -78,6 +85,7 @@ func (h *APIHandler) handleCalendarICS(w http.ResponseWriter, r *http.Request) {
 		if e.IsWorkday {
 			prefix = "[班]"
 		}
+		
 		summary := prefix + " " + desc
 
 		sb.WriteString("BEGIN:VEVENT\r\n")

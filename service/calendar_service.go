@@ -22,9 +22,9 @@ var (
 type CalendarService interface {
 	AddException(ctx context.Context, entry *models.CalendarException) error
 	UpdateException(ctx context.Context, entry *models.CalendarException) error
-	DeleteException(ctx context.Context, date string) error
-	ListExceptions(ctx context.Context) ([]*models.CalendarException, error)
-	GetException(ctx context.Context, date string) (*models.CalendarException, error)
+	DeleteException(ctx context.Context, date string, region string) error
+	ListExceptions(ctx context.Context, region string) ([]*models.CalendarException, error)
+	GetException(ctx context.Context, date string, region string) (*models.CalendarException, error)
 }
 
 type calendarService struct {
@@ -43,9 +43,12 @@ func (s *calendarService) AddException(ctx context.Context, entry *models.Calend
 	if _, err := time.Parse("2006-01-02", entry.Date); err != nil {
 		return ErrInvalidCalendarInput
 	}
+	if entry.Region == "" {
+		entry.Region = "cn"
+	}
 
 	// Check if already exists
-	existing, err := s.repo.Get(ctx, entry.Date)
+	existing, err := s.repo.Get(ctx, entry.Date, entry.Region)
 	if err == nil && existing != nil {
 		return ErrExceptionAlreadyExists
 	}
@@ -60,9 +63,12 @@ func (s *calendarService) UpdateException(ctx context.Context, entry *models.Cal
 	if _, err := time.Parse("2006-01-02", entry.Date); err != nil {
 		return ErrInvalidCalendarInput
 	}
+	if entry.Region == "" {
+		entry.Region = "cn"
+	}
 
 	// Check if exists
-	_, err := s.repo.Get(ctx, entry.Date)
+	_, err := s.repo.Get(ctx, entry.Date, entry.Region)
 	if err != nil {
 		return ErrExceptionNotFound
 	}
@@ -70,23 +76,29 @@ func (s *calendarService) UpdateException(ctx context.Context, entry *models.Cal
 	return s.repo.Update(ctx, entry)
 }
 
-func (s *calendarService) DeleteException(ctx context.Context, date string) error {
+func (s *calendarService) DeleteException(ctx context.Context, date string, region string) error {
 	if date == "" {
 		return ErrInvalidCalendarInput
 	}
+	if region == "" {
+		region = "cn"
+	}
 
-	_, err := s.repo.Get(ctx, date)
+	_, err := s.repo.Get(ctx, date, region)
 	if err != nil {
 		return ErrExceptionNotFound
 	}
 
-	return s.repo.Delete(ctx, date)
+	return s.repo.Delete(ctx, date, region)
 }
 
-func (s *calendarService) ListExceptions(ctx context.Context) ([]*models.CalendarException, error) {
-	return s.repo.List(ctx)
+func (s *calendarService) ListExceptions(ctx context.Context, region string) ([]*models.CalendarException, error) {
+	return s.repo.List(ctx, region)
 }
 
-func (s *calendarService) GetException(ctx context.Context, date string) (*models.CalendarException, error) {
-	return s.repo.Get(ctx, date)
+func (s *calendarService) GetException(ctx context.Context, date string, region string) (*models.CalendarException, error) {
+	if region == "" {
+		region = "cn"
+	}
+	return s.repo.Get(ctx, date, region)
 }

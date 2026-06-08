@@ -12,9 +12,9 @@ import (
 type CalendarRepository interface {
 	Create(ctx context.Context, entry *models.CalendarException) error
 	Update(ctx context.Context, entry *models.CalendarException) error
-	Delete(ctx context.Context, date string) error
-	List(ctx context.Context) ([]*models.CalendarException, error)
-	Get(ctx context.Context, date string) (*models.CalendarException, error)
+	Delete(ctx context.Context, date string, region string) error
+	List(ctx context.Context, region string) ([]*models.CalendarException, error)
+	Get(ctx context.Context, date string, region string) (*models.CalendarException, error)
 }
 
 type mysqlCalendarRepository struct {
@@ -27,26 +27,33 @@ func NewCalendarRepository(db *sql.DB) CalendarRepository {
 }
 
 func (r *mysqlCalendarRepository) Create(ctx context.Context, entry *models.CalendarException) error {
-	query := `INSERT INTO calendar_exception (date, is_workday, description) VALUES (?, ?, ?)`
-	_, err := r.db.ExecContext(ctx, query, entry.Date, entry.IsWorkday, entry.Description)
+	query := `INSERT INTO calendar_exception (date, region, is_workday, description) VALUES (?, ?, ?, ?)`
+	_, err := r.db.ExecContext(ctx, query, entry.Date, entry.Region, entry.IsWorkday, entry.Description)
 	return err
 }
 
 func (r *mysqlCalendarRepository) Update(ctx context.Context, entry *models.CalendarException) error {
-	query := `UPDATE calendar_exception SET is_workday = ?, description = ? WHERE date = ?`
-	_, err := r.db.ExecContext(ctx, query, entry.IsWorkday, entry.Description, entry.Date)
+	query := `UPDATE calendar_exception SET is_workday = ?, description = ? WHERE date = ? AND region = ?`
+	_, err := r.db.ExecContext(ctx, query, entry.IsWorkday, entry.Description, entry.Date, entry.Region)
 	return err
 }
 
-func (r *mysqlCalendarRepository) Delete(ctx context.Context, date string) error {
-	query := `DELETE FROM calendar_exception WHERE date = ?`
-	_, err := r.db.ExecContext(ctx, query, date)
+func (r *mysqlCalendarRepository) Delete(ctx context.Context, date string, region string) error {
+	query := `DELETE FROM calendar_exception WHERE date = ? AND region = ?`
+	_, err := r.db.ExecContext(ctx, query, date, region)
 	return err
 }
 
-func (r *mysqlCalendarRepository) List(ctx context.Context) ([]*models.CalendarException, error) {
-	query := `SELECT date, is_workday, description, created_at FROM calendar_exception ORDER BY date DESC`
-	rows, err := r.db.QueryContext(ctx, query)
+func (r *mysqlCalendarRepository) List(ctx context.Context, region string) ([]*models.CalendarException, error) {
+	var query string
+	var args []interface{}
+	if region != "" {
+		query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception WHERE region = ? ORDER BY date DESC`
+		args = append(args, region)
+	} else {
+		query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception ORDER BY date DESC, region ASC`
+	}
+	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +63,7 @@ func (r *mysqlCalendarRepository) List(ctx context.Context) ([]*models.CalendarE
 	for rows.Next() {
 		var entry models.CalendarException
 		var dateVal time.Time
-		err := rows.Scan(&dateVal, &entry.IsWorkday, &entry.Description, &entry.CreatedAt)
+		err := rows.Scan(&dateVal, &entry.Region, &entry.IsWorkday, &entry.Description, &entry.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -69,11 +76,11 @@ func (r *mysqlCalendarRepository) List(ctx context.Context) ([]*models.CalendarE
 	return list, nil
 }
 
-func (r *mysqlCalendarRepository) Get(ctx context.Context, date string) (*models.CalendarException, error) {
-	query := `SELECT date, is_workday, description, created_at FROM calendar_exception WHERE date = ?`
+func (r *mysqlCalendarRepository) Get(ctx context.Context, date string, region string) (*models.CalendarException, error) {
+	query := `SELECT date, region, is_workday, description, created_at FROM calendar_exception WHERE date = ? AND region = ?`
 	var entry models.CalendarException
 	var dateVal time.Time
-	err := r.db.QueryRowContext(ctx, query, date).Scan(&dateVal, &entry.IsWorkday, &entry.Description, &entry.CreatedAt)
+	err := r.db.QueryRowContext(ctx, query, date, region).Scan(&dateVal, &entry.Region, &entry.IsWorkday, &entry.Description, &entry.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

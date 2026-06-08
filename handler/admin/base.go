@@ -41,7 +41,7 @@ func (h *BaseHandler) initTemplates(embeddedFS embed.FS) {
 		panic("failed to map embedded web assets: " + err.Error())
 	}
 
-	views := []string{"login", "dashboard", "apps", "users", "tokens", "blacklist", "logs", "calendar"}
+	views := []string{"login", "dashboard", "apps", "users", "tokens", "blacklist", "logs", "calendar", "holiday"}
 	for _, view := range views {
 		tmpl := template.New(view)
 		// Compile layouts and views together

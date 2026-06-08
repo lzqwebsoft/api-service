@@ -47,6 +47,7 @@ func main() {
 	blacklistRepo := repository.NewBlacklistRepository(sqlDB)
 	logRepo := repository.NewLogRepository(sqlDB)
 	calendarRepo := repository.NewCalendarRepository(sqlDB)
+	holidayRepo := repository.NewHolidayRepository(sqlDB)
 
 	// Seed default administrator if DB is empty
 	db.SeedAdminUser(adminRepo)
@@ -56,6 +57,7 @@ func main() {
 	tokenService := service.NewTokenService(tokenRepo, appRepo, blacklistRepo, logRepo)
 	adminService := service.NewAdminService(adminRepo)
 	calendarService := service.NewCalendarService(calendarRepo)
+	holidayService := service.NewHolidayService(holidayRepo)
 
 	// 5. Initialize handlers (Controller Layer)
 	adminBase := admin.NewBaseHandler(embeddedFS)
@@ -73,9 +75,10 @@ func main() {
 		admin.NewBlacklistHandler(adminBase, tokenService, adminSessionAuth),
 		admin.NewLogHandler(adminBase, tokenService, adminSessionAuth),
 		admin.NewCalendarHandler(adminBase, calendarService, adminSessionAuth),
+		admin.NewHolidayHandler(adminBase, holidayService, adminSessionAuth),
 		// 开放API接口
 		api.NewResourceHandler(apiBase, calendarService),
-		api.NewCalendarHandler(apiBase, calendarService, clientAuth),
+		api.NewCalendarHandler(apiBase, calendarService, holidayService, clientAuth),
 	}
 
 	// 6. Register routes
