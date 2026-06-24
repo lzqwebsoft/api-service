@@ -41,12 +41,23 @@ func (h *CalendarHandler) InitRoutes() []handler.Route {
 
 // handleCalendar returns calendar exceptions in JSON format.
 func (h *CalendarHandler) handleCalendar(w http.ResponseWriter, r *http.Request) {
+	yearStr := r.URL.Query().Get("year")
 	region := r.URL.Query().Get("region")
 	if region == "" {
 		region = "cn"
 	}
 
-	exceptions, err := h.calendarService.ListExceptions(r.Context(), region)
+	year := time.Now().Year()
+	if yearStr != "" {
+		if y, err := strconv.Atoi(yearStr); err == nil {
+			year = y
+		} else {
+			h.JSONError(w, r, "Invalid year parameter", http.StatusBadRequest)
+			return
+		}
+	}
+
+	exceptions, err := h.calendarService.ListExceptions(r.Context(), region, year)
 	if err != nil {
 		h.JSONError(w, r, "Failed to load calendar exceptions: "+err.Error(), http.StatusInternalServerError)
 		return

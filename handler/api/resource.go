@@ -41,7 +41,7 @@ func (h *APIHandler) handleCalendarICS(w http.ResponseWriter, r *http.Request) {
 		region = "cn"
 	}
 
-	exceptions, err := h.calendarService.ListExceptions(r.Context(), region)
+	exceptions, err := h.calendarService.ListExceptions(r.Context(), region, 0)
 	if err != nil {
 		h.HTTPError(w, r, "Failed to load calendar exceptions: "+err.Error(), http.StatusInternalServerError)
 		return

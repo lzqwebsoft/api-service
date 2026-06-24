@@ -40,13 +40,14 @@ func (s *holidayService) AddHoliday(ctx context.Context, entry *models.Holiday) 
 	if entry.Month < 1 || entry.Month > 12 {
 		return errors.New("无效的月份 (必须为1-12)")
 	}
-	if entry.Type == "solar" || entry.Type == "industry" {
+	switch entry.Type {
+	case "solar", "industry":
 		if entry.Day < 1 || entry.Day > 31 {
 			return errors.New("无效的日期 (必须为1-31)")
 		}
 		entry.WeekNumber = 0
 		entry.DayOfWeek = 0
-	} else if entry.Type == "weekday" {
+	case "weekday":
 		if entry.WeekNumber < 1 || entry.WeekNumber > 5 {
 			return errors.New("无效的星期数 (必须为1-5)")
 		}
@@ -82,13 +83,14 @@ func (s *holidayService) UpdateHoliday(ctx context.Context, entry *models.Holida
 	if entry.Month < 1 || entry.Month > 12 {
 		return errors.New("无效的月份 (必须为1-12)")
 	}
-	if entry.Type == "solar" || entry.Type == "industry" {
+	switch entry.Type {
+	case "solar", "industry":
 		if entry.Day < 1 || entry.Day > 31 {
 			return errors.New("无效的日期 (必须为1-31)")
 		}
 		entry.WeekNumber = 0
 		entry.DayOfWeek = 0
-	} else if entry.Type == "weekday" {
+	case "weekday":
 		if entry.WeekNumber < 1 || entry.WeekNumber > 5 {
 			return errors.New("无效的星期数 (必须为1-5)")
 		}
@@ -193,7 +195,7 @@ func calculateWeekdayHoliday(year, month, weekNumber, dayOfWeek int) string {
 
 	// Start at 1st of the month
 	t := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-	
+
 	// Convert our 1-7 weekday to time.Weekday (0=Sunday, 1=Monday...)
 	targetWD := time.Weekday(dayOfWeek % 7)
 	firstWD := t.Weekday()

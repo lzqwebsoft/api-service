@@ -13,7 +13,7 @@ type CalendarRepository interface {
 	Create(ctx context.Context, entry *models.CalendarException) error
 	Update(ctx context.Context, entry *models.CalendarException) error
 	Delete(ctx context.Context, date string, region string) error
-	List(ctx context.Context, region string) ([]*models.CalendarException, error)
+	List(ctx context.Context, region string, year int) ([]*models.CalendarException, error)
 	Get(ctx context.Context, date string, region string) (*models.CalendarException, error)
 }
 
@@ -44,14 +44,24 @@ func (r *mysqlCalendarRepository) Delete(ctx context.Context, date string, regio
 	return err
 }
 
-func (r *mysqlCalendarRepository) List(ctx context.Context, region string) ([]*models.CalendarException, error) {
+func (r *mysqlCalendarRepository) List(ctx context.Context, region string, year int) ([]*models.CalendarException, error) {
 	var query string
 	var args []interface{}
 	if region != "" {
-		query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception WHERE region = ? ORDER BY date DESC`
-		args = append(args, region)
+		if year > 0 {
+			query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception WHERE region = ? AND YEAR(date) = ? ORDER BY date DESC`
+			args = append(args, region, year)
+		} else {
+			query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception WHERE region = ? ORDER BY date DESC`
+			args = append(args, region)
+		}
 	} else {
-		query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception ORDER BY date DESC, region ASC`
+		if year > 0 {
+			query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception WHERE YEAR(date) = ? ORDER BY date DESC, region ASC`
+			args = append(args, year)
+		} else {
+			query = `SELECT date, region, is_workday, description, created_at FROM calendar_exception ORDER BY date DESC, region ASC`
+		}
 	}
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {

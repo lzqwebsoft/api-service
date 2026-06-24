@@ -23,7 +23,7 @@ type CalendarService interface {
 	AddException(ctx context.Context, entry *models.CalendarException) error
 	UpdateException(ctx context.Context, entry *models.CalendarException) error
 	DeleteException(ctx context.Context, date string, region string) error
-	ListExceptions(ctx context.Context, region string) ([]*models.CalendarException, error)
+	ListExceptions(ctx context.Context, region string, year int) ([]*models.CalendarException, error)
 	GetException(ctx context.Context, date string, region string) (*models.CalendarException, error)
 }
 
@@ -92,8 +92,8 @@ func (s *calendarService) DeleteException(ctx context.Context, date string, regi
 	return s.repo.Delete(ctx, date, region)
 }
 
-func (s *calendarService) ListExceptions(ctx context.Context, region string) ([]*models.CalendarException, error) {
-	return s.repo.List(ctx, region)
+func (s *calendarService) ListExceptions(ctx context.Context, region string, year int) ([]*models.CalendarException, error) {
+	return s.repo.List(ctx, region, year)
 }
 
 func (s *calendarService) GetException(ctx context.Context, date string, region string) (*models.CalendarException, error) {
