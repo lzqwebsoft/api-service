@@ -38,7 +38,7 @@ type TokenService interface {
 
 	// Log methods
 	LogAccess(ctx context.Context, log *models.TokenAccessLog) error
-	ListAccessLogs(ctx context.Context) ([]*models.TokenAccessLog, error)
+	ListAccessLogs(ctx context.Context, limit, offset int) ([]*models.TokenAccessLog, int, error)
 	GetDailyAccessTrend(ctx context.Context, days int) ([]*models.DailyCount, error)
 }
 
@@ -158,8 +158,8 @@ func (s *tokenService) LogAccess(ctx context.Context, log *models.TokenAccessLog
 	return s.logRepo.Create(ctx, log)
 }
 
-func (s *tokenService) ListAccessLogs(ctx context.Context) ([]*models.TokenAccessLog, error) {
-	return s.logRepo.List(ctx)
+func (s *tokenService) ListAccessLogs(ctx context.Context, limit, offset int) ([]*models.TokenAccessLog, int, error) {
+	return s.logRepo.List(ctx, limit, offset)
 }
 
 func (s *tokenService) GetDailyAccessTrend(ctx context.Context, days int) ([]*models.DailyCount, error) {

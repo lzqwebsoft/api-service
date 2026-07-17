@@ -24,6 +24,7 @@ type CalendarService interface {
 	UpdateException(ctx context.Context, entry *models.CalendarException) error
 	DeleteException(ctx context.Context, date string, region string) error
 	ListExceptions(ctx context.Context, region string, year int) ([]*models.CalendarException, error)
+	ListExceptionsPaged(ctx context.Context, region string, isWorkday *bool, year int, limit, offset int) ([]*models.CalendarException, int, *models.CalendarStats, error)
 	GetException(ctx context.Context, date string, region string) (*models.CalendarException, error)
 }
 
@@ -92,13 +93,17 @@ func (s *calendarService) DeleteException(ctx context.Context, date string, regi
 	return s.repo.Delete(ctx, date, region)
 }
 
-func (s *calendarService) ListExceptions(ctx context.Context, region string, year int) ([]*models.CalendarException, error) {
-	return s.repo.List(ctx, region, year)
-}
-
 func (s *calendarService) GetException(ctx context.Context, date string, region string) (*models.CalendarException, error) {
 	if region == "" {
 		region = "cn"
 	}
 	return s.repo.Get(ctx, date, region)
+}
+
+func (s *calendarService) ListExceptionsPaged(ctx context.Context, region string, isWorkday *bool, year int, limit, offset int) ([]*models.CalendarException, int, *models.CalendarStats, error) {
+	return s.repo.ListPaged(ctx, region, isWorkday, year, limit, offset)
+}
+
+func (s *calendarService) ListExceptions(ctx context.Context, region string, year int) ([]*models.CalendarException, error) {
+	return s.repo.List(ctx, region, year)
 }

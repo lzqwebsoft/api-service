@@ -10,7 +10,7 @@ import (
 // LogRepository defines database operations for the token_access_logs table
 type LogRepository interface {
 	Create(ctx context.Context, entry *models.TokenAccessLog) error
-	List(ctx context.Context) ([]*models.TokenAccessLog, error)
+	List(ctx context.Context, limit, offset int) ([]*models.TokenAccessLog, int, error)
 	GetDailyAccessCounts(ctx context.Context, days int) ([]*models.DailyCount, error)
 }
 
@@ -37,11 +37,17 @@ func (r *mysqlLogRepository) Create(ctx context.Context, entry *models.TokenAcce
 	return nil
 }
 
-func (r *mysqlLogRepository) List(ctx context.Context) ([]*models.TokenAccessLog, error) {
-	query := `SELECT id, token, platform, version, user_uuid, ip, api_path, created_at FROM token_access_logs ORDER BY created_at DESC LIMIT 100`
-	rows, err := r.db.QueryContext(ctx, query)
+func (r *mysqlLogRepository) List(ctx context.Context, limit, offset int) ([]*models.TokenAccessLog, int, error) {
+	var total int
+	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM token_access_logs").Scan(&total)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	query := `SELECT id, token, platform, version, user_uuid, ip, api_path, created_at FROM token_access_logs ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -50,14 +56,14 @@ func (r *mysqlLogRepository) List(ctx context.Context) ([]*models.TokenAccessLog
 		var entry models.TokenAccessLog
 		err := rows.Scan(&entry.ID, &entry.Token, &entry.Platform, &entry.Version, &entry.UserUUID, &entry.IP, &entry.APIPath, &entry.CreatedAt)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, &entry)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func (r *mysqlLogRepository) GetDailyAccessCounts(ctx context.Context, days int) ([]*models.DailyCount, error) {

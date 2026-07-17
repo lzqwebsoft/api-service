@@ -10,3 +10,11 @@ type CalendarException struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+// CalendarStats holds calendar exception statistics for a region
+type CalendarStats struct {
+	TotalCount   int      `json:"totalCount"`
+	HolidayCount int      `json:"holidayCount"`
+	WorkdayCount int      `json:"workdayCount"`
+	Years        []string `json:"years"`
+}

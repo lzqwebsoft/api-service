@@ -1,11 +1,11 @@
 package admin
 
 import (
+	"encoding/json"
 	"net/http"
-	"sort"
+	"strconv"
 
 	"api-service/handler"
-	"api-service/middleware"
 	"api-service/models"
 	"api-service/service"
 )
@@ -40,139 +40,167 @@ func (h *CalendarHandler) InitRoutes() []handler.Route {
 	}
 }
 
-// handleCalendarList renders the holiday exceptions table view
+// handleCalendarList returns the holiday exceptions table in JSON format
 func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Request) {
-	username := middleware.GetAdminUsername(r.Context())
 	region := r.URL.Query().Get("region")
+	if region == "all" || region == "" {
+		region = ""
+	}
 
-	exceptions, err := h.calendarService.ListExceptions(r.Context(), region, 0)
+	currentStr := r.URL.Query().Get("current")
+	sizeStr := r.URL.Query().Get("size")
+
+	current := 1
+	if c, err := strconv.Atoi(currentStr); err == nil && c > 0 {
+		current = c
+	}
+	size := 20
+	if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+		size = s
+	}
+
+	isWorkdayStr := r.URL.Query().Get("is_workday")
+	var isWorkday *bool
+	if isWorkdayStr != "" {
+		val := isWorkdayStr == "true" || isWorkdayStr == "1"
+		isWorkday = &val
+	}
+
+	yearStr := r.URL.Query().Get("year")
+	year := 0
+	if y, err := strconv.Atoi(yearStr); err == nil && y > 0 {
+		year = y
+	}
+
+	limit := size
+	offset := (current - 1) * size
+
+	exceptions, total, stats, err := h.calendarService.ListExceptionsPaged(r.Context(), region, isWorkday, year, limit, offset)
 	if err != nil {
-		h.HTTPError(w, r, "Failed to load calendar exceptions: "+err.Error(), http.StatusInternalServerError)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load calendar exceptions: "+err.Error(), nil)
 		return
 	}
 
-	holidayCount := 0
-	workdayCount := 0
-	yearsMap := make(map[string]bool)
-	for _, e := range exceptions {
-		if len(e.Date) >= 4 {
-			yearsMap[e.Date[:4]] = true
-		}
-		if e.IsWorkday {
-			workdayCount++
-		} else {
-			holidayCount++
-		}
+	res := map[string]interface{}{
+		"list":         exceptions,
+		"total":        total,
+		"totalCount":   stats.TotalCount,
+		"holidayCount": stats.HolidayCount,
+		"workdayCount": stats.WorkdayCount,
+		"years":        stats.Years,
 	}
 
-	var years []string
-	for y := range yearsMap {
-		years = append(years, y)
-	}
-	sort.Strings(years)
-
-	h.Render(w, "calendar", map[string]interface{}{
-		"Title":        "节假日安排",
-		"Username":     username,
-		"ActiveTab":    "calendar",
-		"Exceptions":   exceptions,
-		"TotalCount":   len(exceptions),
-		"HolidayCount": holidayCount,
-		"WorkdayCount": workdayCount,
-		"YearsCovered": years,
-		"Region":       region,
-		"Error":        r.URL.Query().Get("error"),
-		"Success":      r.URL.Query().Get("success"),
-	})
+	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
 }
 
 // handleCalendarAdd processes adding an exception entry
 func (h *CalendarHandler) handleCalendarAdd(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/calendar?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		Date        string `json:"date"`
+		Region      string `json:"region"`
+		IsWorkday   bool   `json:"is_workday"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.Date = r.FormValue("date")
+		req.Region = r.FormValue("region")
+		req.IsWorkday = r.FormValue("is_workday") == "1" || r.FormValue("is_workday") == "true"
+		req.Description = r.FormValue("description")
+	}
+
+	if req.Region == "" {
+		req.Region = "cn"
+	}
+
+	if req.Date == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "日期不能为空", nil)
 		return
 	}
 
-	date := r.FormValue("date")
-	region := r.FormValue("region")
-	isWorkdayStr := r.FormValue("is_workday")
-	description := r.FormValue("description")
-
-	isWorkday := isWorkdayStr == "1"
-
-	if region == "" {
-		region = "cn"
-	}
-
 	entry := &models.CalendarException{
-		Date:        date,
-		Region:      region,
-		IsWorkday:   isWorkday,
-		Description: description,
+		Date:        req.Date,
+		Region:      req.Region,
+		IsWorkday:   req.IsWorkday,
+		Description: req.Description,
 	}
 
 	err := h.calendarService.AddException(r.Context(), entry)
 	if err != nil {
-		http.Redirect(w, r, "/admin/calendar?region="+region+"&error=添加例外日期失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "添加例外日期失败: "+err.Error(), nil)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/calendar?region="+region+"&success=例外日期添加成功", http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "例外日期添加成功", nil)
 }
 
 // handleCalendarUpdate processes updating an exception entry
 func (h *CalendarHandler) handleCalendarUpdate(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/calendar?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		Date        string `json:"date"`
+		Region      string `json:"region"`
+		IsWorkday   bool   `json:"is_workday"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.Date = r.FormValue("date")
+		req.Region = r.FormValue("region")
+		req.IsWorkday = r.FormValue("is_workday") == "1" || r.FormValue("is_workday") == "true"
+		req.Description = r.FormValue("description")
+	}
+
+	if req.Region == "" {
+		req.Region = "cn"
+	}
+
+	if req.Date == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "日期不能为空", nil)
 		return
 	}
 
-	date := r.FormValue("date")
-	region := r.FormValue("region")
-	isWorkdayStr := r.FormValue("is_workday")
-	description := r.FormValue("description")
-
-	isWorkday := isWorkdayStr == "1"
-
-	if region == "" {
-		region = "cn"
-	}
-
 	entry := &models.CalendarException{
-		Date:        date,
-		Region:      region,
-		IsWorkday:   isWorkday,
-		Description: description,
+		Date:        req.Date,
+		Region:      req.Region,
+		IsWorkday:   req.IsWorkday,
+		Description: req.Description,
 	}
 
 	err := h.calendarService.UpdateException(r.Context(), entry)
 	if err != nil {
-		http.Redirect(w, r, "/admin/calendar?region="+region+"&error=更新例外日期失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "更新例外日期失败: "+err.Error(), nil)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/calendar?region="+region+"&success=例外日期更新成功", http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "例外日期更新成功", nil)
 }
 
 // handleCalendarDelete processes deleting an exception entry
 func (h *CalendarHandler) handleCalendarDelete(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/calendar?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		Date   string `json:"date"`
+		Region string `json:"region"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.Date = r.FormValue("date")
+		req.Region = r.FormValue("region")
+	}
+
+	if req.Region == "" {
+		req.Region = "cn"
+	}
+
+	if req.Date == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "日期不能为空", nil)
 		return
 	}
 
-	date := r.FormValue("date")
-	region := r.FormValue("region")
-
-	if region == "" {
-		region = "cn"
-	}
-
-	err := h.calendarService.DeleteException(r.Context(), date, region)
+	err := h.calendarService.DeleteException(r.Context(), req.Date, req.Region)
 	if err != nil {
-		http.Redirect(w, r, "/admin/calendar?region="+region+"&error=删除例外日期失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "删除例外日期失败: "+err.Error(), nil)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/calendar?region="+region+"&success=例外日期已成功删除", http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "例外日期已成功删除", nil)
 }

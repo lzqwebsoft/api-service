@@ -4,8 +4,16 @@ import { AppRouteRecord } from '@/types/router'
 // 获取用户列表
 export function fetchGetUserList(params: Api.SystemManage.UserSearchParams) {
   return request.get<Api.SystemManage.UserList>({
-    url: '/api/user/list',
+    url: '/admin/users',
     params
+  })
+}
+
+// 新增管理员用户
+export function fetchCreateUser(data: any) {
+  return request.post({
+    url: '/admin/users/create',
+    data
   })
 }
 

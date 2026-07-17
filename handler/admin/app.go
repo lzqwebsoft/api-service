@@ -1,10 +1,10 @@
 package admin
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"api-service/handler"
-	"api-service/middleware"
 	"api-service/models"
 	"api-service/service"
 )
@@ -41,19 +41,17 @@ func (h *AppHandler) InitRoutes() []handler.Route {
 	}
 }
 
-// handleApps renders the application registration and token generation panel
+// handleApps returns application registration and token list in JSON format
 func (h *AppHandler) handleApps(w http.ResponseWriter, r *http.Request) {
-	username := middleware.GetAdminUsername(r.Context())
-
 	apps, err := h.appService.ListApps(r.Context())
 	if err != nil {
-		h.HTTPError(w, r, "Failed to load apps: "+err.Error(), http.StatusInternalServerError)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load apps: "+err.Error(), nil)
 		return
 	}
 
 	tokens, err := h.tokenService.ListTokens(r.Context())
 	if err != nil {
-		h.HTTPError(w, r, "Failed to load tokens: "+err.Error(), http.StatusInternalServerError)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load tokens: "+err.Error(), nil)
 		return
 	}
 
@@ -75,94 +73,97 @@ func (h *AppHandler) handleApps(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	h.Render(w, "apps", map[string]interface{}{
-		"Title":                  "应用与 Token 管理",
-		"Username":               username,
-		"ActiveTab":              "apps",
-		"Apps":                   appVMs,
-		"TotalApps":              len(apps),
-		"TotalTokens":            len(tokens),
-		"Error":                  r.URL.Query().Get("error"),
-		"Success":                r.URL.Query().Get("success"),
-		"GeneratedToken":         r.URL.Query().Get("generated_token"),
-		"GeneratedTokenPlatform": r.URL.Query().Get("platform"),
-		"GeneratedTokenAppID":    r.URL.Query().Get("generated_token_app_id"),
-		"GeneratedTokenVersion":  r.URL.Query().Get("generated_token_version"),
-	})
+	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", appVMs)
 }
 
-// handleRegisterApp handles HTML form submission to register a new application version
+// handleRegisterApp handles registering a new application version via JSON or Form
 func (h *AppHandler) handleRegisterApp(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/apps?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		AppID   string `json:"app_id"`
+		Name    string `json:"name"`
+		Version string `json:"version"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.AppID = r.FormValue("app_id")
+		req.Name = r.FormValue("name")
+		req.Version = r.FormValue("version")
+	}
+
+	if req.AppID == "" || req.Name == "" || req.Version == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "所有字段均必填", nil)
 		return
 	}
 
-	appID := r.FormValue("app_id")
-	name := r.FormValue("name")
-	version := r.FormValue("version")
-
 	app := &models.App{
-		AppID:   appID,
-		Name:    name,
-		Version: version,
+		AppID:   req.AppID,
+		Name:    req.Name,
+		Version: req.Version,
 	}
 
 	err := h.appService.RegisterApp(r.Context(), app)
 	if err != nil {
-		http.Redirect(w, r, "/admin/apps?error=注册失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "注册失败: "+err.Error(), nil)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/apps?success=新应用版本注册成功", http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "新应用版本注册成功", nil)
 }
 
 // handleToggleApp toggles active/inactive state of a specific application version
 func (h *AppHandler) handleToggleApp(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/apps?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		AppID    string `json:"app_id"`
+		Version  string `json:"version"`
+		IsActive bool   `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.AppID = r.FormValue("app_id")
+		req.Version = r.FormValue("version")
+		req.IsActive = r.FormValue("is_active") == "true"
+	}
+
+	if req.AppID == "" || req.Version == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 app_id 或 version", nil)
 		return
 	}
 
-	appID := r.FormValue("app_id")
-	version := r.FormValue("version")
-	isActiveStr := r.FormValue("is_active")
-
-	isActive := isActiveStr == "true"
-
-	err := h.appService.UpdateAppStatus(r.Context(), appID, version, isActive)
+	err := h.appService.UpdateAppStatus(r.Context(), req.AppID, req.Version, req.IsActive)
 	if err != nil {
-		http.Redirect(w, r, "/admin/apps?error=更新状态失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "更新状态失败: "+err.Error(), nil)
 		return
 	}
 
 	msg := "应用版本已禁用"
-	if isActive {
+	if req.IsActive {
 		msg = "应用版本已启用"
 	}
-	http.Redirect(w, r, "/admin/apps?success="+msg, http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, msg, nil)
 }
 
-// handleDeleteApp processes deleting an application version and cascading tokens deletion
+// handleDeleteApp processes deleting an application version
 func (h *AppHandler) handleDeleteApp(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/apps?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		AppID   string `json:"app_id"`
+		Version string `json:"version"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.AppID = r.FormValue("app_id")
+		req.Version = r.FormValue("version")
+	}
+
+	if req.AppID == "" || req.Version == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 app_id 或 version", nil)
 		return
 	}
 
-	appID := r.FormValue("app_id")
-	version := r.FormValue("version")
-
-	if appID == "" || version == "" {
-		http.Redirect(w, r, "/admin/apps?error=缺失 app_id 或 version", http.StatusSeeOther)
-		return
-	}
-
-	err := h.appService.DeleteApp(r.Context(), appID, version)
+	err := h.appService.DeleteApp(r.Context(), req.AppID, req.Version)
 	if err != nil {
-		http.Redirect(w, r, "/admin/apps?error=删除应用失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "删除应用失败: "+err.Error(), nil)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/apps?success=应用及对应 Token 已成功删除", http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "应用及对应 Token 已成功删除", nil)
 }

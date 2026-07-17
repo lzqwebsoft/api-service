@@ -1,10 +1,11 @@
 package admin
 
 import (
+	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"api-service/handler"
-	"api-service/middleware"
 	"api-service/models"
 	"api-service/service"
 )
@@ -37,19 +38,32 @@ func (h *LogHandler) InitRoutes() []handler.Route {
 	}
 }
 
-// handleLogs renders the token access log list and computes blacklisted key lookups
+// handleLogs returns token access log list and blacklisted keys in JSON format
 func (h *LogHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
-	username := middleware.GetAdminUsername(r.Context())
+	currentStr := r.URL.Query().Get("current")
+	sizeStr := r.URL.Query().Get("size")
 
-	logs, err := h.tokenService.ListAccessLogs(r.Context())
+	current := 1
+	if c, err := strconv.Atoi(currentStr); err == nil && c > 0 {
+		current = c
+	}
+	size := 20
+	if s, err := strconv.Atoi(sizeStr); err == nil && s > 0 {
+		size = s
+	}
+
+	limit := size
+	offset := (current - 1) * size
+
+	logs, total, err := h.tokenService.ListAccessLogs(r.Context(), limit, offset)
 	if err != nil {
-		h.HTTPError(w, r, "Failed to load logs: "+err.Error(), http.StatusInternalServerError)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load logs: "+err.Error(), nil)
 		return
 	}
 
 	blacklist, err := h.tokenService.ListBlacklist(r.Context())
 	if err != nil {
-		h.HTTPError(w, r, "Failed to load blacklist: "+err.Error(), http.StatusInternalServerError)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load blacklist: "+err.Error(), nil)
 		return
 	}
 
@@ -59,46 +73,48 @@ func (h *LogHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
 		blacklistedKeys[key] = true
 	}
 
-	h.Render(w, "logs", map[string]interface{}{
-		"Title":           "访问记录",
-		"Username":        username,
-		"ActiveTab":       "logs",
-		"Logs":            logs,
-		"BlacklistedKeys": blacklistedKeys,
-		"Error":           r.URL.Query().Get("error"),
-		"Success":         r.URL.Query().Get("success"),
-	})
+	res := map[string]interface{}{
+		"list":            logs,
+		"total":           total,
+		"blacklistedKeys": blacklistedKeys,
+	}
+
+	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
 }
 
 // handleLogsBlacklist processes one-click blacklisting from a log entry
 func (h *LogHandler) handleLogsBlacklist(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/logs?error=表单解析失败", http.StatusSeeOther)
-		return
+	var req struct {
+		Token    string `json:"token"`
+		Platform string `json:"platform"`
+		Version  string `json:"version"`
+		UserUUID string `json:"user_uuid"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.Token = r.FormValue("token")
+		req.Platform = r.FormValue("platform")
+		req.Version = r.FormValue("version")
+		req.UserUUID = r.FormValue("user_uuid")
 	}
 
-	token := r.FormValue("token")
-	platform := r.FormValue("platform")
-	version := r.FormValue("version")
-	userUUID := r.FormValue("user_uuid")
-
-	if token == "" || userUUID == "" {
-		http.Redirect(w, r, "/admin/logs?error=缺失 Token 或用户 UUID", http.StatusSeeOther)
+	if req.Token == "" || req.UserUUID == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 Token 或用户 UUID", nil)
 		return
 	}
 
 	entry := &models.TokenBlacklist{
-		Token:    token,
-		Platform: platform,
-		Version:  version,
-		UserUUID: userUUID,
+		Token:    req.Token,
+		Platform: req.Platform,
+		Version:  req.Version,
+		UserUUID: req.UserUUID,
 	}
 
 	err := h.tokenService.AddToBlacklist(r.Context(), entry)
 	if err != nil {
-		http.Redirect(w, r, "/admin/logs?error=拉黑失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "拉黑失败: "+err.Error(), nil)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/logs?success=用户访问已被一键拉黑", http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "用户访问已被一键拉黑", nil)
 }

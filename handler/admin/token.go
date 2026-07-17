@@ -1,11 +1,10 @@
 package admin
 
 import (
+	"encoding/json"
 	"net/http"
-	"time"
 
 	"api-service/handler"
-	"api-service/middleware"
 	"api-service/service"
 )
 
@@ -40,102 +39,84 @@ func (h *TokenHandler) InitRoutes() []handler.Route {
 	}
 }
 
-// handleTokens renders tokens details and management view for a specific app
+// handleTokens returns tokens list in JSON format
 func (h *TokenHandler) handleTokens(w http.ResponseWriter, r *http.Request) {
-	username := middleware.GetAdminUsername(r.Context())
 	appID := r.URL.Query().Get("app_id")
 	version := r.URL.Query().Get("version")
 
 	if appID == "" || version == "" {
-		http.Redirect(w, r, "/admin/apps?error=参数错误: 缺失 app_id 或 version", http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 400, "参数错误: 缺失 app_id 或 version", nil)
 		return
 	}
 
 	app, err := h.appService.GetApp(r.Context(), appID, version)
 	if err != nil {
-		http.Redirect(w, r, "/admin/apps?error=应用未找到: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 404, "应用未找到: "+err.Error(), nil)
 		return
 	}
 
 	tokens, err := h.tokenService.ListTokensByApp(r.Context(), appID, version)
 	if err != nil {
-		http.Redirect(w, r, "/admin/apps?error=加载 Token 失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "加载 Token 失败: "+err.Error(), nil)
 		return
 	}
 
-	h.Render(w, "tokens", map[string]interface{}{
-		"Title":                  "管理 Token",
-		"Username":               username,
-		"ActiveTab":              "apps",
-		"AppName":                app.Name,
-		"AppID":                  appID,
-		"Version":                version,
-		"Tokens":                 tokens,
-		"Now":                    time.Now(),
-		"Error":                  r.URL.Query().Get("error"),
-		"Success":                r.URL.Query().Get("success"),
-		"GeneratedToken":         r.URL.Query().Get("generated_token"),
-		"GeneratedTokenPlatform": r.URL.Query().Get("platform"),
-		"GeneratedTokenAppID":    r.URL.Query().Get("generated_token_app_id"),
-		"GeneratedTokenVersion":  r.URL.Query().Get("generated_token_version"),
-	})
+	res := map[string]interface{}{
+		"app":    app,
+		"tokens": tokens,
+	}
+
+	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
 }
 
 // handleGenerateToken issues a new token for an app version
 func (h *TokenHandler) handleGenerateToken(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/apps?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		AppID    string `json:"app_id"`
+		Version  string `json:"version"`
+		Platform string `json:"platform"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.AppID = r.FormValue("app_id")
+		req.Version = r.FormValue("version")
+		req.Platform = r.FormValue("platform")
+	}
+
+	if req.Platform == "" || req.AppID == "" || req.Version == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "生成 Token 失败: 必须指定平台/应用/版本", nil)
 		return
 	}
 
-	appID := r.FormValue("app_id")
-	version := r.FormValue("version")
-	platform := r.FormValue("platform")
-	redirectToTokens := r.FormValue("redirect_to_tokens") == "true"
-
-	if platform == "" {
-		dest := "/admin/apps?error=生成 Token 失败: 必须指定平台"
-		if redirectToTokens {
-			dest = "/admin/tokens?app_id=" + appID + "&version=" + version + "&error=生成 Token 失败: 必须指定平台"
-		}
-		http.Redirect(w, r, dest, http.StatusSeeOther)
-		return
-	}
-
-	token, err := h.tokenService.GenerateToken(r.Context(), appID, version, platform)
+	token, err := h.tokenService.GenerateToken(r.Context(), req.AppID, req.Version, req.Platform)
 	if err != nil {
-		dest := "/admin/apps?error=生成 Token 失败: " + err.Error()
-		if redirectToTokens {
-			dest = "/admin/tokens?app_id=" + appID + "&version=" + version + "&error=生成 Token 失败: " + err.Error()
-		}
-		http.Redirect(w, r, dest, http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "生成 Token 失败: "+err.Error(), nil)
 		return
 	}
 
-	dest := "/admin/apps?generated_token=" + token.Token + "&platform=" + token.Platform + "&generated_token_app_id=" + appID + "&generated_token_version=" + version + "&success=Token 生成成功"
-	if redirectToTokens {
-		dest = "/admin/tokens?app_id=" + appID + "&version=" + version + "&generated_token=" + token.Token + "&platform=" + token.Platform + "&generated_token_app_id=" + appID + "&generated_token_version=" + version + "&success=Token 生成成功"
-	}
-
-	http.Redirect(w, r, dest, http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "Token 生成成功", token)
 }
 
 // handleRevokeToken invalidates a token
 func (h *TokenHandler) handleRevokeToken(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Redirect(w, r, "/admin/apps?error=表单解析失败", http.StatusSeeOther)
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		_ = r.ParseForm()
+		req.Token = r.FormValue("token")
+	}
+
+	if req.Token == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 token", nil)
 		return
 	}
 
-	token := r.FormValue("token")
-	appID := r.FormValue("app_id")
-	version := r.FormValue("version")
-
-	err := h.tokenService.RevokeToken(r.Context(), token)
+	err := h.tokenService.RevokeToken(r.Context(), req.Token)
 	if err != nil {
-		http.Redirect(w, r, "/admin/tokens?app_id="+appID+"&version="+version+"&error=撤销失败: "+err.Error(), http.StatusSeeOther)
+		handler.SendAdminJSON(w, http.StatusOK, 500, "撤销失败: "+err.Error(), nil)
 		return
 	}
 
-	http.Redirect(w, r, "/admin/tokens?app_id="+appID+"&version="+version+"&success=Token 已成功撤销", http.StatusSeeOther)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "Token 已成功撤销", nil)
 }

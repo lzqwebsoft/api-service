@@ -9,6 +9,9 @@
       <ElFormItem label="用户名" prop="username">
         <ElInput v-model="formData.username" placeholder="请输入用户名" />
       </ElFormItem>
+      <ElFormItem v-if="dialogType === 'add'" label="密码" prop="password">
+        <ElInput v-model="formData.password" type="password" placeholder="请输入密码" />
+      </ElFormItem>
       <ElFormItem label="手机号" prop="phone">
         <ElInput v-model="formData.phone" placeholder="请输入手机号" />
       </ElFormItem>
@@ -41,6 +44,7 @@
 <script setup lang="ts">
   import { ROLE_LIST_DATA } from '@/mock/temp/formData'
   import type { FormInstance, FormRules } from 'element-plus'
+  import { fetchCreateUser } from '@/api/system-manage'
 
   interface Props {
     visible: boolean
@@ -73,6 +77,7 @@
   // 表单数据
   const formData = reactive({
     username: '',
+    password: '',
     phone: '',
     gender: '男',
     role: [] as string[]
@@ -83,6 +88,10 @@
     username: [
       { required: true, message: '请输入用户名', trigger: 'blur' },
       { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+    ],
+    password: [
+      { required: true, message: '请输入密码', trigger: 'blur' },
+      { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
     ],
     phone: [
       { required: true, message: '请输入手机号', trigger: 'blur' },
@@ -102,6 +111,7 @@
 
     Object.assign(formData, {
       username: isEdit && row ? row.userName || '' : '',
+      password: '',
       phone: isEdit && row ? row.userPhone || '' : '',
       gender: isEdit && row ? row.userGender || '男' : '男',
       role: isEdit && row ? (Array.isArray(row.userRoles) ? row.userRoles : []) : []
@@ -132,11 +142,20 @@
   const handleSubmit = async () => {
     if (!formRef.value) return
 
-    await formRef.value.validate((valid) => {
+    await formRef.value.validate(async (valid) => {
       if (valid) {
-        ElMessage.success(dialogType.value === 'add' ? '添加成功' : '更新成功')
-        dialogVisible.value = false
-        emit('submit')
+        try {
+          if (dialogType.value === 'add') {
+            await fetchCreateUser(formData)
+            ElMessage.success('添加成功')
+          } else {
+            ElMessage.success('更新成功 (模拟)')
+          }
+          dialogVisible.value = false
+          emit('submit')
+        } catch (e: any) {
+          ElMessage.error(e.message || '操作失败')
+        }
       }
     })
   }

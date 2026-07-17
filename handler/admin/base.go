@@ -11,11 +11,11 @@ import (
 
 // AppDisplay extends models.App with token counts for rendering
 type AppDisplay struct {
-	AppID      string
-	Name       string
-	Version    string
-	IsActive   bool
-	TokenCount int
+	AppID      string `json:"app_id"`
+	Name       string `json:"name"`
+	Version    string `json:"version"`
+	IsActive   bool   `json:"is_active"`
+	TokenCount int    `json:"token_count"`
 }
 
 // BaseHandler holds shared infrastructure (compiled templates) used by

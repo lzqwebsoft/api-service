@@ -17,7 +17,9 @@ type HolidayService interface {
 	UpdateHoliday(ctx context.Context, entry *models.Holiday) error
 	DeleteHoliday(ctx context.Context, id int) error
 	ListHolidays(ctx context.Context) ([]*models.Holiday, error)
+	ListHolidaysPaged(ctx context.Context, name string, holidayType string, regions string, limit, offset int) ([]*models.Holiday, int, error)
 	GetResolvedHolidays(ctx context.Context, year int, region string) ([]*models.ResolvedHoliday, error)
+	GetStats(ctx context.Context) (map[string]int, error)
 }
 
 type holidayService struct {
@@ -131,6 +133,16 @@ func (s *holidayService) DeleteHoliday(ctx context.Context, id int) error {
 // ListHolidays retrieves all standard holiday configurations
 func (s *holidayService) ListHolidays(ctx context.Context) ([]*models.Holiday, error) {
 	return s.repo.List(ctx)
+}
+
+// ListHolidaysPaged retrieves standard holiday configurations with pagination and filters
+func (s *holidayService) ListHolidaysPaged(ctx context.Context, name string, holidayType string, regions string, limit, offset int) ([]*models.Holiday, int, error) {
+	return s.repo.ListPaged(ctx, name, holidayType, regions, limit, offset)
+}
+
+// GetStats returns counts for standard holiday types
+func (s *holidayService) GetStats(ctx context.Context) (map[string]int, error) {
+	return s.repo.GetStats(ctx)
 }
 
 // GetResolvedHolidays calculates and returns all holidays for a given year and region

@@ -89,36 +89,40 @@ func SeedRBAC(sqlDB *sql.DB) {
 	}
 
 	// 3. Seed Menus
-	var menuCount int
-	err = sqlDB.QueryRowContext(ctx, "SELECT COUNT(*) FROM admin_menus").Scan(&menuCount)
+	var hasTokenMenu bool
+	err = sqlDB.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM admin_menus WHERE path = '/token')").Scan(&hasTokenMenu)
 	if err != nil {
-		logger.Warnf("Failed to query admin_menus: %v", err)
+		logger.Warnf("Failed to query admin_menus exists: %v", err)
 		return
 	}
-	if menuCount == 0 {
-		logger.Info("Seeding dynamic menus...")
+	if !hasTokenMenu {
+		logger.Info("Old/missing menus detected. Cleaning and seeding new layouts/master.html menu tree...")
 		
+		// Clean existing entries to prevent key conflicts
+		_, _ = sqlDB.ExecContext(ctx, "DELETE FROM admin_menu_auths")
+		_, _ = sqlDB.ExecContext(ctx, "DELETE FROM admin_role_menus")
+		_, _ = sqlDB.ExecContext(ctx, "DELETE FROM admin_menus")
+
 		// Insert menus
 		_, err = sqlDB.ExecContext(ctx, `
 			INSERT INTO admin_menus (id, parent_id, name, path, component, title, icon, is_hide, keep_alive, is_hide_tab, is_full_page, fixed_tab, sort_order) VALUES
 			(1, 0, 'Dashboard', '/dashboard', '/index/index', 'menus.dashboard.title', 'ri:pie-chart-line', 0, 0, 0, 0, 0, 1),
-			(2, 0, 'System', '/system', '/index/index', 'menus.system.title', 'ri:user-3-line', 0, 0, 0, 0, 0, 2),
-			(3, 0, 'Result', '/result', '/index/index', 'menus.result.title', 'ri:checkbox-circle-line', 0, 0, 0, 0, 0, 3),
-			(4, 0, 'Exception', '/exception', '/index/index', 'menus.exception.title', 'ri:error-warning-line', 0, 0, 0, 0, 0, 4),
+			(2, 1, 'Console', 'console', '/dashboard/console', 'menus.dashboard.console', '', 0, 0, 0, 0, 1, 1),
 			
-			(5, 1, 'Console', 'console', '/dashboard/console', 'menus.dashboard.console', '', 0, 0, 0, 0, 1, 1),
+			(3, 0, 'Token', '/token', '/index/index', 'menus.token.title', 'ri:key-2-line', 0, 0, 0, 0, 0, 2),
+			(4, 3, 'Apps', 'apps', '/token/apps', 'menus.token.apps', '', 0, 1, 0, 0, 0, 1),
+			(5, 3, 'Blacklist', 'blacklist', '/token/blacklist', 'menus.token.blacklist', '', 0, 1, 0, 0, 0, 2),
+			(6, 3, 'Logs', 'logs', '/token/logs', 'menus.token.logs', '', 0, 1, 0, 0, 0, 3),
 			
-			(6, 2, 'User', 'user', '/system/user', 'menus.system.user', '', 0, 1, 0, 0, 0, 1),
-			(7, 2, 'Role', 'role', '/system/role', 'menus.system.role', '', 0, 1, 0, 0, 0, 2),
-			(8, 2, 'UserCenter', 'user-center', '/system/user-center', 'menus.system.userCenter', '', 1, 1, 1, 0, 0, 3),
-			(9, 2, 'Menus', 'menu', '/system/menu', 'menus.system.menu', '', 0, 1, 0, 0, 0, 4),
+			(7, 0, 'Calendar', '/calendar', '/index/index', 'menus.calendar.title', 'ri:calendar-todo-line', 0, 0, 0, 0, 0, 3),
+			(8, 7, 'Arrange', 'arrange', '/calendar/arrange', 'menus.calendar.arrange', '', 0, 1, 0, 0, 0, 1),
+			(9, 7, 'Holiday', 'holiday', '/calendar/holiday', 'menus.calendar.holiday', '', 0, 1, 0, 0, 0, 2),
 			
-			(10, 3, 'ResultSuccess', 'success', '/result/success', 'menus.result.success', 'ri:checkbox-circle-line', 0, 1, 0, 0, 0, 1),
-			(11, 3, 'ResultFail', 'fail', '/result/fail', 'menus.result.fail', 'ri:close-circle-line', 0, 1, 0, 0, 0, 2),
-			
-			(12, 4, 'Exception403', '403', '/exception/403', 'menus.exception.forbidden', '', 0, 1, 1, 1, 0, 1),
-			(13, 4, 'Exception404', '404', '/exception/404', 'menus.exception.notFound', '', 0, 1, 1, 1, 0, 2),
-			(14, 4, 'Exception500', '500', '/exception/500', 'menus.exception.serverError', '', 0, 1, 1, 1, 0, 3)
+			(10, 0, 'System', '/system', '/index/index', 'menus.system.title', 'ri:user-3-line', 0, 0, 0, 0, 0, 4),
+			(11, 10, 'User', 'user', '/system/user', 'menus.system.user', '', 0, 1, 0, 0, 0, 1),
+			(12, 10, 'Role', 'role', '/system/role', 'menus.system.role', '', 0, 1, 0, 0, 0, 2),
+			(13, 10, 'UserCenter', 'user-center', '/system/user-center', 'menus.system.userCenter', '', 1, 1, 1, 0, 0, 3),
+			(14, 10, 'Menus', 'menu', '/system/menu', 'menus.system.menu', '', 0, 1, 0, 0, 0, 4)
 		`)
 		if err != nil {
 			logger.Errorf("Failed to seed menus: %v", err)
@@ -128,9 +132,9 @@ func SeedRBAC(sqlDB *sql.DB) {
 		// Insert menu auths (button actions)
 		_, err = sqlDB.ExecContext(ctx, `
 			INSERT INTO admin_menu_auths (menu_id, title, auth_mark) VALUES
-			(9, '新增', 'add'),
-			(9, '编辑', 'edit'),
-			(9, '删除', 'delete')
+			(14, '新增', 'add'),
+			(14, '编辑', 'edit'),
+			(14, '删除', 'delete')
 		`)
 		if err != nil {
 			logger.Errorf("Failed to seed menu auths: %v", err)
@@ -141,13 +145,13 @@ func SeedRBAC(sqlDB *sql.DB) {
 		_, err = sqlDB.ExecContext(ctx, `
 			INSERT INTO admin_role_menus (role_id, menu_id) VALUES
 			(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14),
-			(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 8), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14)
+			(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 13)
 		`)
 		if err != nil {
 			logger.Errorf("Failed to seed role menus: %v", err)
 			return
 		}
 		
-		logger.Info("Dynamic menus and permissions successfully seeded.")
+		logger.Info("Dynamic master.html layouts menus and permissions successfully seeded.")
 	}
 }
