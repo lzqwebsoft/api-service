@@ -35,3 +35,23 @@ func ErrorResponse(w http.ResponseWriter, statusCode int, errMsg string) {
 	}
 	_ = json.NewEncoder(w).Encode(resp)
 }
+
+// AdminResponse represents the unified JSON format for the Admin Vue SPA: {code: number, msg: string, data: T}
+type AdminResponse struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
+}
+
+// SendAdminJSON writes a JSON response in the Admin Vue SPA format
+func SendAdminJSON(w http.ResponseWriter, httpStatus int, code int, msg string, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(httpStatus)
+
+	resp := AdminResponse{
+		Code: code,
+		Msg:  msg,
+		Data: data,
+	}
+	_ = json.NewEncoder(w).Encode(resp)
+}

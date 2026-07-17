@@ -6,5 +6,7 @@
   "db_port": "3306",
   "db_name": "api_service",
   "db_params": "parseTime=true&loc=Local",
-  "db_dsn": ""
+  "db_dsn": "",
+  "access_token_expire_hours": 24,
+  "refresh_token_expire_days": 7
 }

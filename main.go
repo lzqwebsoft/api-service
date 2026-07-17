@@ -3,8 +3,11 @@ package main
 import (
 	"embed"
 	"io/fs"
+	"mime"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"api-service/config"
@@ -51,11 +54,12 @@ func main() {
 
 	// Seed default administrator if DB is empty
 	db.SeedAdminUser(adminRepo)
+	db.SeedRBAC(sqlDB)
 
 	// 4. Initialize services (Business Logic Layer)
 	appService := service.NewAppService(appRepo)
 	tokenService := service.NewTokenService(tokenRepo, appRepo, blacklistRepo, logRepo)
-	adminService := service.NewAdminService(adminRepo)
+	adminService := service.NewAdminService(adminRepo, cfg)
 	calendarService := service.NewCalendarService(calendarRepo)
 	holidayService := service.NewHolidayService(holidayRepo)
 
@@ -84,9 +88,53 @@ func main() {
 	// 6. Register routes
 	mux := http.NewServeMux()
 
-	// TODO
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
+	// Catch-all handler: route all non-/api and non-/admin requests to public/index.html (SPA Fallback)
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+
+		// 1. Check if the file physically exists under the public directory
+		// (e.g. /favicon.ico -> public/favicon.ico, /assets/index.js -> public/assets/index.js)
+		cleanPath := filepath.Clean(path)
+		localFilePath := filepath.Join("public", cleanPath)
+		if fileInfo, err := os.Stat(localFilePath); err == nil && !fileInfo.IsDir() {
+			http.ServeFile(w, r, localFilePath)
+			return
+		}
+
+		// Also check the embedded filesystem
+		embedPath := filepath.ToSlash(filepath.Join("public", cleanPath))
+		if fileInfo, err := fs.Stat(embeddedFS, embedPath); err == nil && !fileInfo.IsDir() {
+			content, err := embeddedFS.ReadFile(embedPath)
+			if err == nil {
+				contentType := mime.TypeByExtension(filepath.Ext(embedPath))
+				if contentType != "" {
+					w.Header().Set("Content-Type", contentType)
+				}
+				w.Write(content)
+				return
+			}
+		}
+
+		// 2. If the request did not match any file, but starts with /api/ or /admin/, let it return 404 (NotFound).
+		if strings.HasPrefix(path, "/api/") || strings.HasPrefix(path, "/admin/") || path == "/api" || path == "/admin" {
+			http.NotFound(w, r)
+			return
+		}
+
+		// 3. Otherwise, fallback to serving the Vue app's index.html
+		if _, err := os.Stat("public/index.html"); err == nil {
+			http.ServeFile(w, r, "public/index.html")
+			return
+		}
+
+		htmlContent, err := embeddedFS.ReadFile("public/index.html")
+		if err != nil {
+			logger.Errorf("Failed to read public/index.html: %v", err)
+			http.Error(w, "Frontend build not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(htmlContent)
 	})
 
 	for _, c := range controllers {
@@ -109,20 +157,7 @@ func main() {
 		}
 	}
 
-	// Serve public static files (checks local directory first for development, falls back to embedded FS)
-	var publicHandler http.Handler
-	if _, err := os.Stat("public"); err == nil {
-		publicHandler = http.FileServer(http.Dir("public"))
-	} else {
-		publicSubFS, err := fs.Sub(embeddedFS, "public")
-		if err != nil {
-			logger.Fatalf("Failed to initialize embedded public assets: %v", err)
-		}
-		publicHandler = http.FileServer(http.FS(publicSubFS))
-	}
-	mux.Handle("/public/", http.StripPrefix("/public/", publicHandler))
-
-	// 7. Configure and start HTTP Server
+	// 6. Configure and start HTTP Server
 	srv := &http.Server{
 		Addr:         ":" + cfg.ServerPort,
 		Handler:      middleware.LoggerMiddleware(mux),

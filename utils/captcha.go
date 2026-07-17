@@ -4,10 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wenlng/go-captcha-assets/resources/imagesv2"
+	"github.com/wenlng/go-captcha-assets/resources/tiles"
+	"github.com/wenlng/go-captcha/v2/slide"
 )
 
 type captchaData struct {
@@ -51,71 +54,106 @@ func (s *CaptchaStore) GetAndRemove(id string) (string, bool) {
 	return data.code, true
 }
 
-// GenerateCaptcha creates a random 4-digit code, saves it to store, and returns SVG markup
-func GenerateCaptcha() (string, string, error) {
-	// Generate random 4-digit numeric code
-	digits := "0123456789"
-	codeBytes := make([]byte, 4)
-	for i := 0; i < 4; i++ {
-		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(digits))))
-		if err != nil {
-			return "", "", err
-		}
-		codeBytes[i] = digits[idx.Int64()]
-	}
-	code := string(codeBytes)
+var slideCapt slide.Captcha
+var slideOnce sync.Once
 
-	// Generate a unique ID (UUID style)
+// InitSlideCaptcha configures and initializes the go-captcha slide builder
+func InitSlideCaptcha() {
+	slideOnce.Do(func() {
+		builder := slide.NewBuilder()
+
+		imgs, err := imagesv2.GetImages()
+		if err != nil {
+			panic("failed to load go-captcha images: " + err.Error())
+		}
+		graphs, err := tiles.GetTiles()
+		if err != nil {
+			panic("failed to load go-captcha tiles: " + err.Error())
+		}
+
+		var slideGraphs = make([]*slide.GraphImage, 0, len(graphs))
+		for i := 0; i < len(graphs); i++ {
+			g := graphs[i]
+			slideGraphs = append(slideGraphs, &slide.GraphImage{
+				OverlayImage: g.OverlayImage,
+				MaskImage:    g.MaskImage,
+				ShadowImage:  g.ShadowImage,
+			})
+		}
+
+		builder.SetResources(
+			slide.WithBackgrounds(imgs),
+			slide.WithGraphImages(slideGraphs),
+		)
+
+		slideCapt = builder.Make()
+	})
+}
+
+// SlideCaptchaResult contains the visual slices and target positioning
+type SlideCaptchaResult struct {
+	ID    string `json:"id"`
+	Image string `json:"image"`
+	Thumb string `json:"thumb"`
+	Y     int    `json:"y"`
+	W     int    `json:"w"`
+	H     int    `json:"h"`
+}
+
+// GenerateSlideCaptcha generates a new puzzle slide challenge
+func GenerateSlideCaptcha() (*SlideCaptchaResult, error) {
+	InitSlideCaptcha()
+
+	captData, err := slideCapt.Generate()
+	if err != nil {
+		return nil, err
+	}
+
+	blockData := captData.GetData()
+	targetX := blockData.X
+	targetY := blockData.Y
+
 	idBytes := make([]byte, 16)
 	if _, err := rand.Read(idBytes); err != nil {
-		return "", "", err
+		return nil, err
 	}
 	id := hex.EncodeToString(idBytes)
 
-	// Register with a 5-minute expiry window
-	Store.Set(id, code, 5*time.Minute)
+	// Keep correct target coordinate in store with a 5-minute expiry
+	Store.Set(id, fmt.Sprintf("%d,%d", targetX, targetY), 5*time.Minute)
 
-	// SVG Dimensions
-	width := 120
-	height := 42
-
-	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">`, width, height, width, height)
-	// Dark UI-compliant Background
-	svg += `<rect width="100%" height="100%" fill="#1f1f2e" rx="4"/>`
-
-	// Distortive lines for noise
-	for i := 0; i < 4; i++ {
-		x1, _ := rand.Int(rand.Reader, big.NewInt(int64(width)))
-		y1, _ := rand.Int(rand.Reader, big.NewInt(int64(height)))
-		x2, _ := rand.Int(rand.Reader, big.NewInt(int64(width)))
-		y2, _ := rand.Int(rand.Reader, big.NewInt(int64(height)))
-		svg += fmt.Sprintf(`<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="#3b3b5c" stroke-width="1.5"/>`, x1.Int64(), y1.Int64(), x2.Int64(), y2.Int64())
+	masterBase64, err := captData.GetMasterImage().ToBase64()
+	if err != nil {
+		return nil, err
 	}
 
-	// Dots for noise
-	for i := 0; i < 20; i++ {
-		cx, _ := rand.Int(rand.Reader, big.NewInt(int64(width)))
-		cy, _ := rand.Int(rand.Reader, big.NewInt(int64(height)))
-		r, _ := rand.Int(rand.Reader, big.NewInt(2))
-		svg += fmt.Sprintf(`<circle cx="%d" cy="%d" r="%d" fill="#4d4d7a" opacity="0.6"/>`, cx.Int64(), cy.Int64(), r.Int64()+1)
+	tileBase64, err := captData.GetTileImage().ToBase64()
+	if err != nil {
+		return nil, err
 	}
 
-	// Dynamic text placement and rotation
-	colors := []string{"#ff5555", "#50fa7b", "#f1fa8c", "#bd93f9", "#ff79c6", "#8be9fd"}
-	for i, char := range code {
-		cIdx, _ := rand.Int(rand.Reader, big.NewInt(int64(len(colors))))
-		color := colors[cIdx.Int64()]
+	return &SlideCaptchaResult{
+		ID:    id,
+		Image: masterBase64,
+		Thumb: tileBase64,
+		Y:     blockData.DY,
+		W:     blockData.Width,
+		H:     blockData.Height,
+	}, nil
+}
 
-		fontSize := 22 + i%2*2
-		x := 15 + i*24
-		y := 28
-
-		angle, _ := rand.Int(rand.Reader, big.NewInt(30))
-		rot := angle.Int64() - 15 // Rotate between -15 to +15 degrees
-
-		svg += fmt.Sprintf(`<text x="%d" y="%d" font-family="Arial, sans-serif" font-size="%d" font-weight="bold" fill="%s" transform="rotate(%d %d %d)">%c</text>`, x, y, fontSize, color, rot, x, y, char)
+// VerifySlideCaptcha validates if the user's sliding offset falls within the allowed error margin
+func VerifySlideCaptcha(id string, sx, sy int) bool {
+	expectedCoordsStr, ok := Store.GetAndRemove(id)
+	if !ok {
+		return false
 	}
 
-	svg += `</svg>`
-	return id, svg, nil
+	var expectedDX, expectedDY int
+	if _, err := fmt.Sscanf(expectedCoordsStr, "%d,%d", &expectedDX, &expectedDY); err != nil {
+		return false
+	}
+
+	// Verify coordinates with an allowable error margin of 5 pixels
+	return slide.Validate(sx, sy, expectedDX, expectedDY, 5)
 }

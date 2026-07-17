@@ -33,11 +33,62 @@ CREATE TABLE IF NOT EXISTS `admin_users` (
 
 CREATE TABLE IF NOT EXISTS `admin_sessions` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `session_token` VARCHAR(255) NOT NULL UNIQUE,
-    `username` VARCHAR(50) NOT NULL,
-    `expires_at` TIMESTAMP NOT NULL,
+    `access_token` VARCHAR(255) NOT NULL UNIQUE,
+    `refresh_token` VARCHAR(255) NOT NULL UNIQUE,
+    `user_id` INT NOT NULL,
+    `access_expires_at` BIGINT NOT NULL,
+    `refresh_expires_at` BIGINT NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    KEY `idx_session_token` (`session_token`)
+    KEY `idx_access_token` (`access_token`),
+    KEY `idx_refresh_token` (`refresh_token`),
+    CONSTRAINT `fk_admin_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `admin_users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `admin_roles` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(50) NOT NULL UNIQUE,
+    `code` VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `admin_user_roles` (
+    `user_id` INT NOT NULL,
+    `role_id` INT NOT NULL,
+    PRIMARY KEY (`user_id`, `role_id`),
+    CONSTRAINT `fk_user_roles_user` FOREIGN KEY (`user_id`) REFERENCES `admin_users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_user_roles_role` FOREIGN KEY (`role_id`) REFERENCES `admin_roles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `admin_menus` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `parent_id` INT DEFAULT 0,
+    `name` VARCHAR(100) NOT NULL,
+    `path` VARCHAR(255) NOT NULL,
+    `component` VARCHAR(255),
+    `title` VARCHAR(100) NOT NULL,
+    `icon` VARCHAR(100) DEFAULT '',
+    `is_hide` TINYINT(1) DEFAULT 0,
+    `keep_alive` TINYINT(1) DEFAULT 0,
+    `is_hide_tab` TINYINT(1) DEFAULT 0,
+    `is_full_page` TINYINT(1) DEFAULT 0,
+    `fixed_tab` TINYINT(1) DEFAULT 0,
+    `sort_order` INT DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `admin_role_menus` (
+    `role_id` INT NOT NULL,
+    `menu_id` INT NOT NULL,
+    PRIMARY KEY (`role_id`, `menu_id`),
+    CONSTRAINT `fk_role_menus_role` FOREIGN KEY (`role_id`) REFERENCES `admin_roles` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `fk_role_menus_menu` FOREIGN KEY (`menu_id`) REFERENCES `admin_menus` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `admin_menu_auths` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `menu_id` INT NOT NULL,
+    `title` VARCHAR(100) NOT NULL,
+    `auth_mark` VARCHAR(100) NOT NULL,
+    CONSTRAINT `fk_menu_auths_menu` FOREIGN KEY (`menu_id`) REFERENCES `admin_menus` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `token_blacklist` (
