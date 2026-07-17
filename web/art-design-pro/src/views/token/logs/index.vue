@@ -40,8 +40,16 @@
 
         <!-- Custom slot: operation -->
         <template #operation="{ row }">
-          <ElTooltip v-if="!isBlacklisted(row)" :content="t('logsManage.blacklistBtn')" placement="top">
-            <ArtButtonTable icon="ri:forbid-line" icon-class="bg-error/12 text-error" @click="oneClickBlacklist(row)" />
+          <ElTooltip
+            v-if="!isBlacklisted(row)"
+            :content="t('logsManage.blacklistBtn')"
+            placement="top"
+          >
+            <ArtButtonTable
+              icon="ri:forbid-line"
+              icon-class="bg-error/12 text-error"
+              @click="oneClickBlacklist(row)"
+            />
           </ElTooltip>
           <ElTag v-else type="info">{{ t('logsManage.blocked') }}</ElTag>
         </template>

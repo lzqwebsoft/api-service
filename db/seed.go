@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"time"
 
-	logger "api-service/utils"
 	"api-service/repository"
+	logger "api-service/utils"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -97,7 +97,7 @@ func SeedRBAC(sqlDB *sql.DB) {
 	}
 	if !hasTokenMenu {
 		logger.Info("Old/missing menus detected. Cleaning and seeding new layouts/master.html menu tree...")
-		
+
 		// Clean existing entries to prevent key conflicts
 		_, _ = sqlDB.ExecContext(ctx, "DELETE FROM admin_menu_auths")
 		_, _ = sqlDB.ExecContext(ctx, "DELETE FROM admin_role_menus")
@@ -107,22 +107,22 @@ func SeedRBAC(sqlDB *sql.DB) {
 		_, err = sqlDB.ExecContext(ctx, `
 			INSERT INTO admin_menus (id, parent_id, name, path, component, title, icon, is_hide, keep_alive, is_hide_tab, is_full_page, fixed_tab, sort_order) VALUES
 			(1, 0, 'Dashboard', '/dashboard', '/index/index', 'menus.dashboard.title', 'ri:pie-chart-line', 0, 0, 0, 0, 0, 1),
-			(2, 1, 'Console', 'console', '/dashboard/console', 'menus.dashboard.console', '', 0, 0, 0, 0, 1, 1),
+			(2, 1, 'Console', 'console', '/dashboard/console', 'menus.dashboard.console', 'ri:dashboard-line', 0, 0, 0, 0, 1, 1),
 			
 			(3, 0, 'Token', '/token', '/index/index', 'menus.token.title', 'ri:key-2-line', 0, 0, 0, 0, 0, 2),
-			(4, 3, 'Apps', 'apps', '/token/apps', 'menus.token.apps', '', 0, 1, 0, 0, 0, 1),
-			(5, 3, 'Blacklist', 'blacklist', '/token/blacklist', 'menus.token.blacklist', '', 0, 1, 0, 0, 0, 2),
-			(6, 3, 'Logs', 'logs', '/token/logs', 'menus.token.logs', '', 0, 1, 0, 0, 0, 3),
+			(4, 3, 'Apps', 'apps', '/token/apps', 'menus.token.apps', 'ri:apps-line', 0, 1, 0, 0, 0, 1),
+			(5, 3, 'Blacklist', 'blacklist', '/token/blacklist', 'menus.token.blacklist', 'ri:forbid-line', 0, 1, 0, 0, 0, 2),
+			(6, 3, 'Logs', 'logs', '/token/logs', 'menus.token.logs', 'ri:file-list-line', 0, 1, 0, 0, 0, 3),
 			
 			(7, 0, 'Calendar', '/calendar', '/index/index', 'menus.calendar.title', 'ri:calendar-todo-line', 0, 0, 0, 0, 0, 3),
-			(8, 7, 'Arrange', 'arrange', '/calendar/arrange', 'menus.calendar.arrange', '', 0, 1, 0, 0, 0, 1),
-			(9, 7, 'Holiday', 'holiday', '/calendar/holiday', 'menus.calendar.holiday', '', 0, 1, 0, 0, 0, 2),
+			(8, 7, 'Arrange', 'arrange', '/calendar/arrange', 'menus.calendar.arrange', 'ri:calendar-check-line', 0, 1, 0, 0, 0, 1),
+			(9, 7, 'Holiday', 'holiday', '/calendar/holiday', 'menus.calendar.holiday', 'ri:umbrella-line', 0, 1, 0, 0, 0, 2),
 			
 			(10, 0, 'System', '/system', '/index/index', 'menus.system.title', 'ri:user-3-line', 0, 0, 0, 0, 0, 4),
-			(11, 10, 'User', 'user', '/system/user', 'menus.system.user', '', 0, 1, 0, 0, 0, 1),
-			(12, 10, 'Role', 'role', '/system/role', 'menus.system.role', '', 0, 1, 0, 0, 0, 2),
-			(13, 10, 'UserCenter', 'user-center', '/system/user-center', 'menus.system.userCenter', '', 1, 1, 1, 0, 0, 3),
-			(14, 10, 'Menus', 'menu', '/system/menu', 'menus.system.menu', '', 0, 1, 0, 0, 0, 4)
+			(11, 10, 'User', 'user', '/system/user', 'menus.system.user', 'ri:user-line', 0, 1, 0, 0, 0, 1),
+			(12, 10, 'Role', 'role', '/system/role', 'menus.system.role', 'ri:shield-user-line', 0, 1, 0, 0, 0, 2),
+			(13, 10, 'UserCenter', 'user-center', '/system/user-center', 'menus.system.userCenter', 'ri:user-settings-line', 1, 1, 1, 0, 0, 3),
+			(14, 10, 'Menus', 'menu', '/system/menu', 'menus.system.menu', 'ri:menu-line', 0, 1, 0, 0, 0, 4)
 		`)
 		if err != nil {
 			logger.Errorf("Failed to seed menus: %v", err)
@@ -151,7 +151,7 @@ func SeedRBAC(sqlDB *sql.DB) {
 			logger.Errorf("Failed to seed role menus: %v", err)
 			return
 		}
-		
+
 		logger.Info("Dynamic master.html layouts menus and permissions successfully seeded.")
 	}
 }
