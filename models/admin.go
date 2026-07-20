@@ -5,9 +5,22 @@ import "time"
 // AdminUser represents the database record of an administrator user
 type AdminUser struct {
 	ID           int       `json:"id"`
-	Username     string    `json:"username"`
-	PasswordHash string    `json:"-"` // Omitted from JSON serialization for security
-	CreatedAt    time.Time `json:"created_at"`
+	Username     string    `json:"userName"`
+	PasswordHash string    `json:"-"`
+	Nickname     string    `json:"nickName"`
+	RealName     string    `json:"realName"`
+	Email        string    `json:"userEmail"`
+	Phone        string    `json:"userPhone"`
+	Gender       int       `json:"userGender"`
+	Avatar       string    `json:"avatar"`
+	Address      string    `json:"address"`
+	Description  string    `json:"description"`
+	Status       int       `json:"status"`
+	Roles        []string  `json:"userRoles,omitempty"`
+	CreatedAt    time.Time `json:"-"`
+	UpdatedAt    time.Time `json:"-"`
+	CreateTime   string    `json:"createTime"`
+	UpdateTime   string    `json:"updateTime"`
 }
 
 // AdminSession represents a login session token and its expiration rules
@@ -49,6 +62,7 @@ type DBAdminMenu struct {
 
 // DBAdminMenuAuth represents a menu button permission in the database
 type DBAdminMenuAuth struct {
+	ID       int
 	MenuID   int
 	Title    string
 	AuthMark string
@@ -79,6 +93,18 @@ type AdminMenuMeta struct {
 
 // AdminMenuAuthItem holds individual button authority items
 type AdminMenuAuthItem struct {
+	ID       int    `json:"id,omitempty"`
+	MenuID   int    `json:"menuId,omitempty"`
 	Title    string `json:"title"`
 	AuthMark string `json:"authMark"`
+}
+
+// AdminRole represents a role record
+type AdminRole struct {
+	RoleID      int    `json:"roleId"`
+	RoleName    string `json:"roleName"`
+	RoleCode    string `json:"roleCode"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+	CreateTime  string `json:"createTime"`
 }

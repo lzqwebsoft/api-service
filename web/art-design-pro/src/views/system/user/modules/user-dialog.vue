@@ -17,8 +17,9 @@
       </ElFormItem>
       <ElFormItem label="性别" prop="gender">
         <ElSelect v-model="formData.gender">
-          <ElOption label="男" value="男" />
-          <ElOption label="女" value="女" />
+          <ElOption label="男" :value="1" />
+          <ElOption label="女" :value="0" />
+          <ElOption label="未知" :value="-1" />
         </ElSelect>
       </ElFormItem>
       <ElFormItem label="角色" prop="role">
@@ -42,9 +43,8 @@
 </template>
 
 <script setup lang="ts">
-  import { ROLE_LIST_DATA } from '@/mock/temp/formData'
   import type { FormInstance, FormRules } from 'element-plus'
-  import { fetchCreateUser } from '@/api/system-manage'
+  import { fetchCreateUser, fetchUpdateUser, fetchGetRoleList } from '@/api/system-manage'
 
   interface Props {
     visible: boolean
@@ -61,7 +61,18 @@
   const emit = defineEmits<Emits>()
 
   // 角色列表数据
-  const roleList = ref(ROLE_LIST_DATA)
+  const roleList = ref<Api.SystemManage.RoleListItem[]>([])
+
+  onMounted(async () => {
+    try {
+      const res = await fetchGetRoleList({ current: 1, size: 100 })
+      if (res && res.records) {
+        roleList.value = res.records
+      }
+    } catch {
+      console.error('获取角色列表失败')
+    }
+  })
 
   // 对话框显示控制
   const dialogVisible = computed({
@@ -76,10 +87,11 @@
 
   // 表单数据
   const formData = reactive({
+    id: 0,
     username: '',
     password: '',
     phone: '',
-    gender: '男',
+    gender: 1,
     role: [] as string[]
   })
 
@@ -109,11 +121,20 @@
     const isEdit = props.type === 'edit' && props.userData
     const row = props.userData
 
+    let g = 1
+    if (isEdit && row && row.userGender !== undefined) {
+      const val = String(row.userGender)
+      if (val === '0' || val === '女') g = 0
+      else if (val === '-1' || val === '未知') g = -1
+      else g = 1
+    }
+
     Object.assign(formData, {
+      id: isEdit && row ? row.id || 0 : 0,
       username: isEdit && row ? row.userName || '' : '',
       password: '',
       phone: isEdit && row ? row.userPhone || '' : '',
-      gender: isEdit && row ? row.userGender || '男' : '男',
+      gender: g,
       role: isEdit && row ? (Array.isArray(row.userRoles) ? row.userRoles : []) : []
     })
   }
@@ -149,7 +170,8 @@
             await fetchCreateUser(formData)
             ElMessage.success('添加成功')
           } else {
-            ElMessage.success('更新成功 (模拟)')
+            await fetchUpdateUser(formData)
+            ElMessage.success('更新成功')
           }
           dialogVisible.value = false
           emit('submit')

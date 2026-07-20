@@ -28,7 +28,17 @@ CREATE TABLE IF NOT EXISTS `admin_users` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `username` VARCHAR(50) NOT NULL UNIQUE,
     `password_hash` VARCHAR(255) NOT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `nickname` VARCHAR(100) DEFAULT '',
+    `real_name` VARCHAR(100) DEFAULT '',
+    `email` VARCHAR(100) DEFAULT '',
+    `phone` VARCHAR(20) DEFAULT '',
+    `gender` INT DEFAULT 1,         -- 1: 男, 0: 女, -1: 未知
+    `avatar` VARCHAR(255) DEFAULT '',
+    `address` VARCHAR(255) DEFAULT '',
+    `description` TEXT,
+    `status` INT DEFAULT 1,          -- 1: 在线, 2: 离线, 3: 异常, 4: 注销
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `admin_sessions` (
@@ -47,7 +57,10 @@ CREATE TABLE IF NOT EXISTS `admin_sessions` (
 CREATE TABLE IF NOT EXISTS `admin_roles` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(50) NOT NULL UNIQUE,
-    `code` VARCHAR(50) NOT NULL UNIQUE
+    `code` VARCHAR(50) NOT NULL UNIQUE,
+    `description` VARCHAR(255) DEFAULT '',
+    `enabled` TINYINT(1) DEFAULT 1,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `admin_user_roles` (

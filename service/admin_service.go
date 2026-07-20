@@ -35,7 +35,13 @@ type AdminService interface {
 	RefreshToken(ctx context.Context, refreshToken string) (*models.AdminLoginResult, error)
 	ListUsers(ctx context.Context) ([]*models.AdminUser, error)
 	CreateUser(ctx context.Context, username, password string) error
-	GetMenuTreeByUserID(ctx context.Context, userID int) ([]*models.AdminMenu, error)
+	GetUserByID(ctx context.Context, id int) (*models.AdminUser, error)
+	ListUsersFiltered(ctx context.Context, userName, userGender, userPhone, userEmail, status string, page, size int) ([]*models.AdminUser, int, error)
+	CreateUserFull(ctx context.Context, user *models.AdminUser, roleCodes []string) (int, error)
+	UpdateUserFull(ctx context.Context, user *models.AdminUser, roleCodes []string) error
+	DeleteUser(ctx context.Context, id int) error
+	UpdateUserProfile(ctx context.Context, user *models.AdminUser) error
+	ChangeUserPassword(ctx context.Context, id int, oldPassword, newPassword string) error
 }
 
 type adminService struct {
@@ -240,73 +246,71 @@ func (s *adminService) CreateUser(ctx context.Context, username, password string
 		return errors.New("username already exists")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return err
 	}
 	return s.adminRepo.CreateUser(ctx, username, string(hash))
 }
 
-func (s *adminService) GetMenuTreeByUserID(ctx context.Context, userID int) ([]*models.AdminMenu, error) {
-	flatMenus, err := s.adminRepo.GetMenusByUserID(ctx, userID)
+func (s *adminService) GetUserByID(ctx context.Context, id int) (*models.AdminUser, error) {
+	return s.adminRepo.GetUserByID(ctx, id)
+}
+
+func (s *adminService) ListUsersFiltered(ctx context.Context, userName, userGender, userPhone, userEmail, status string, page, size int) ([]*models.AdminUser, int, error) {
+	return s.adminRepo.ListUsersFiltered(ctx, userName, userGender, userPhone, userEmail, status, page, size)
+}
+
+func (s *adminService) CreateUserFull(ctx context.Context, user *models.AdminUser, roleCodes []string) (int, error) {
+	existing, err := s.adminRepo.GetUserByUsername(ctx, user.Username)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	
-	auths, err := s.adminRepo.GetMenuAuthsByUserID(ctx, userID)
+	if existing != nil {
+		return 0, errors.New("用户名已存在")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.PasswordHash), 12)
 	if err != nil {
-		return nil, err
+		return 0, err
+	}
+	user.PasswordHash = string(hash)
+
+	return s.adminRepo.CreateUserFull(ctx, user, roleCodes)
+}
+
+func (s *adminService) UpdateUserFull(ctx context.Context, user *models.AdminUser, roleCodes []string) error {
+	return s.adminRepo.UpdateUserFull(ctx, user, roleCodes)
+}
+
+func (s *adminService) DeleteUser(ctx context.Context, id int) error {
+	return s.adminRepo.DeleteUser(ctx, id)
+}
+
+func (s *adminService) UpdateUserProfile(ctx context.Context, user *models.AdminUser) error {
+	return s.adminRepo.UpdateUserProfile(ctx, user)
+}
+
+func (s *adminService) ChangeUserPassword(ctx context.Context, id int, oldPassword, newPassword string) error {
+	user, err := s.adminRepo.GetUserByID(ctx, id)
+	if err != nil || user == nil {
+		return errors.New("用户不存在")
 	}
 
-	// Build authorization map by menu ID
-	authMap := make(map[int][]models.AdminMenuAuthItem)
-	for _, auth := range auths {
-		authMap[auth.MenuID] = append(authMap[auth.MenuID], models.AdminMenuAuthItem{
-			Title:    auth.Title,
-			AuthMark: auth.AuthMark,
-		})
-	}
-
-	menuMap := make(map[int]*models.AdminMenu)
-	var rootMenus []*models.AdminMenu
-
-	// 1. Create all menu nodes
-	for _, flat := range flatMenus {
-		menu := &models.AdminMenu{
-			ID:        flat.ID,
-			ParentID:  flat.ParentID,
-			Name:      flat.Name,
-			Path:      flat.Path,
-			Component: flat.Component,
-			Meta: models.AdminMenuMeta{
-				Title:      flat.Title,
-				Icon:       flat.Icon,
-				IsHide:     flat.IsHide,
-				KeepAlive:  flat.KeepAlive,
-				IsHideTab:  flat.IsHideTab,
-				IsFullPage: flat.IsFullPage,
-				FixedTab:   flat.FixedTab,
-				AuthList:   authMap[flat.ID],
-			},
-			Children: make([]*models.AdminMenu, 0),
-		}
-		menuMap[flat.ID] = menu
-	}
-
-	// 2. Link parent-child relationships
-	for _, flat := range flatMenus {
-		menu, exists := menuMap[flat.ID]
-		if !exists {
-			continue
-		}
-		if flat.ParentID == 0 {
-			rootMenus = append(rootMenus, menu)
-		} else {
-			if parent, exists := menuMap[flat.ParentID]; exists {
-				parent.Children = append(parent.Children, menu)
-			}
+	if oldPassword != "" {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+			return errors.New("当前密码不正确")
 		}
 	}
 
-	return rootMenus, nil
+	if len(newPassword) < 6 {
+		return errors.New("新密码长度必须至少为6位")
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	if err != nil {
+		return err
+	}
+
+	return s.adminRepo.UpdateUserPassword(ctx, id, string(newHash))
 }

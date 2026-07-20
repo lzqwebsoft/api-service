@@ -12,9 +12,8 @@
         ref="treeRef"
         :data="processedMenuList"
         show-checkbox
-        node-key="name"
+        node-key="id"
         :default-expand-all="isExpandAll"
-        :default-checked-keys="[1, 2, 3]"
         :props="defaultProps"
         @check="handleTreeCheck"
       >
@@ -43,6 +42,7 @@
 <script setup lang="ts">
   import { useMenuStore } from '@/store/modules/menu'
   import { formatMenuTitle } from '@/utils/router'
+  import { fetchGetRoleMenuIds, fetchSetRoleMenus } from '@/api/system-manage'
 
   type RoleListItem = Api.SystemManage.RoleListItem
 
@@ -141,10 +141,16 @@
    */
   watch(
     () => props.modelValue,
-    (newVal) => {
+    async (newVal) => {
       if (newVal && props.roleData) {
-        // TODO: 根据角色加载对应的权限数据
-        console.log('设置权限:', props.roleData)
+        try {
+          const menuIds = await fetchGetRoleMenuIds(props.roleData.roleId)
+          if (treeRef.value) {
+            treeRef.value.setCheckedKeys(menuIds || [])
+          }
+        } catch (error) {
+          console.error('获取角色权限失败:', error)
+        }
       }
     }
   )
@@ -160,11 +166,26 @@
   /**
    * 保存权限配置
    */
-  const savePermission = () => {
-    // TODO: 调用保存权限接口
-    ElMessage.success('权限保存成功')
-    emit('success')
-    handleClose()
+  const savePermission = async () => {
+    if (!props.roleData) return
+    try {
+      const checkedKeys = treeRef.value?.getCheckedKeys() || []
+      const halfCheckedKeys = treeRef.value?.getHalfCheckedKeys() || []
+      const menuIds = Array.from(
+        new Set(
+          [...checkedKeys, ...halfCheckedKeys]
+            .map((id) => (typeof id === 'string' ? parseInt(id.split('_')[0]) : Number(id)))
+            .filter((id) => !isNaN(id) && id > 0)
+        )
+      )
+
+      await fetchSetRoleMenus(props.roleData.roleId, menuIds)
+      ElMessage.success('权限保存成功')
+      emit('success')
+      handleClose()
+    } catch (error) {
+      console.error('保存权限失败:', error)
+    }
   }
 
   /**
@@ -205,11 +226,11 @@
    * @param nodes 节点列表
    * @returns 所有节点的 key 数组
    */
-  const getAllNodeKeys = (nodes: MenuNode[]): string[] => {
-    const keys: string[] = []
+  const getAllNodeKeys = (nodes: MenuNode[]): (string | number)[] => {
+    const keys: (string | number)[] = []
     const traverse = (nodeList: MenuNode[]): void => {
       nodeList.forEach((node) => {
-        if (node.name) keys.push(node.name)
+        if (node.id !== undefined && node.id !== null) keys.push(node.id)
         if (node.children?.length) traverse(node.children)
       })
     }

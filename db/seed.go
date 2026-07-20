@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"api-service/models"
 	"api-service/repository"
 	logger "api-service/utils"
 
@@ -28,14 +29,28 @@ func SeedAdminUser(repo repository.AdminRepository) {
 
 	logger.Info("No records found in admin_users table. Seeding default administrator account...")
 
-	// Hash password "admin123" with default cost
-	hash, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	// Hash password "admin123" with cost 12
+	hash, err := bcrypt.GenerateFromPassword([]byte("admin123"), 12)
 	if err != nil {
 		logger.Errorf("Failed to hash default admin password: %v", err)
 		return
 	}
 
-	err = repo.CreateUser(ctx, "admin", string(hash))
+	adminUser := &models.AdminUser{
+		Username:     "admin",
+		PasswordHash: string(hash),
+		Nickname:     "超级管理员",
+		RealName:     "系统管理员",
+		Email:        "admin@example.com",
+		Phone:        "13800000000",
+		Gender:       1,
+		Avatar:       "https://api.multiavatar.com/admin.svg",
+		Address:      "广东省深圳市",
+		Description:  "系统内置超级管理员账号，拥有最高管理权限",
+		Status:       1,
+	}
+
+	_, err = repo.CreateUserFull(ctx, adminUser, []string{"R_SUPER"})
 	if err != nil {
 		logger.Errorf("Failed to seed admin user in database: %v", err)
 		return
@@ -59,9 +74,9 @@ func SeedRBAC(sqlDB *sql.DB) {
 	if roleCount == 0 {
 		logger.Info("Seeding default roles...")
 		_, err = sqlDB.ExecContext(ctx, `
-			INSERT INTO admin_roles (id, name, code) VALUES
-			(1, 'Super Admin', 'R_SUPER'),
-			(2, 'Administrator', 'R_ADMIN')
+			INSERT INTO admin_roles (id, name, code, description, enabled) VALUES
+			(1, 'Super Admin', 'R_SUPER', '超级管理员，拥有最高管理权限', 1),
+			(2, 'Administrator', 'R_ADMIN', '系统管理员，拥有日常运维权限', 1)
 		`)
 		if err != nil {
 			logger.Errorf("Failed to seed roles: %v", err)

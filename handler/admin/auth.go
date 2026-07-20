@@ -38,7 +38,6 @@ func (h *AuthHandler) InitRoutes() []handler.Route {
 		{Method: http.MethodGet, Path: "/admin/captcha", Handler: h.handleSlideCaptcha},
 		{Method: http.MethodPost, Path: "/admin/logout", Handler: h.handleLogout},
 		{Method: http.MethodGet, Path: "/admin/user/info", Handler: h.handleUserInfo, Middlewares: mw},
-		{Method: http.MethodGet, Path: "/admin/menus", Handler: h.handleGetMenuList, Middlewares: mw},
 		{Method: http.MethodPost, Path: "/admin/refresh_token", Handler: h.handleRefreshToken},
 	}
 }
@@ -105,18 +104,48 @@ func (h *AuthHandler) handleLogout(w http.ResponseWriter, r *http.Request) {
 
 // handleUserInfo returns information of the logged-in administrator
 func (h *AuthHandler) handleUserInfo(w http.ResponseWriter, r *http.Request) {
-	username := middleware.GetAdminUsername(r.Context())
-	if username == "" {
+	userID := middleware.GetAdminUserID(r.Context())
+	if userID == 0 {
 		handler.SendAdminJSON(w, http.StatusOK, 401, "未授权的访问", nil)
 		return
 	}
 
+	user, err := h.adminService.GetUserByID(r.Context(), userID)
+	if err != nil || user == nil {
+		handler.SendAdminJSON(w, http.StatusOK, 500, "用户不存在", nil)
+		return
+	}
+
+	roles := user.Roles
+	if len(roles) == 0 {
+		roles = []string{"R_SUPER"}
+	}
+
+	avatar := user.Avatar
+	if avatar == "" {
+		avatar = "https://api.multiavatar.com/" + user.Username + ".svg"
+	}
+
+	displayName := user.RealName
+	if displayName == "" {
+		displayName = user.Nickname
+	}
+	if displayName == "" {
+		displayName = user.Username
+	}
+
+	email := user.Email
+	if email == "" {
+		email = user.Username + "@example.com"
+	}
+
 	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", map[string]interface{}{
-		"userId":   1,
-		"userName": username,
-		"email":    username + "@example.com",
+		"userId":   user.ID,
+		"userName": displayName,
+		"email":    email,
+		"avatar":   avatar,
 		"buttons":  []string{"*"},
-		"roles":    []string{"admin"},
+		"roles":    roles,
 	})
 }
 
@@ -129,23 +158,6 @@ func (h *AuthHandler) handleSlideCaptcha(w http.ResponseWriter, r *http.Request)
 	}
 
 	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", result)
-}
-
-// handleGetMenuList returns the dynamic menu tree configuration for the authenticated user
-func (h *AuthHandler) handleGetMenuList(w http.ResponseWriter, r *http.Request) {
-	userID := middleware.GetAdminUserID(r.Context())
-	if userID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 401, "未授权的访问", nil)
-		return
-	}
-
-	menuTree, err := h.adminService.GetMenuTreeByUserID(r.Context(), userID)
-	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load menus: "+err.Error(), nil)
-		return
-	}
-
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", menuTree)
 }
 
 // handleRefreshToken processes token refresh requests (POST)

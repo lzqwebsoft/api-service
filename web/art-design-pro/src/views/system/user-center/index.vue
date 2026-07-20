@@ -15,15 +15,15 @@
           <div class="w-75 mx-auto mt-7.5 text-left">
             <div class="mt-2.5">
               <ArtSvgIcon icon="ri:mail-line" class="text-g-700" />
-              <span class="ml-2 text-sm">jdkjjfnndf@mall.com</span>
+              <span class="ml-2 text-sm">{{ form.email || userInfo.email || '未设置邮箱' }}</span>
             </div>
             <div class="mt-2.5">
               <ArtSvgIcon icon="ri:user-3-line" class="text-g-700" />
-              <span class="ml-2 text-sm">交互专家</span>
+              <span class="ml-2 text-sm">{{ form.realName || userInfo.userName }}</span>
             </div>
             <div class="mt-2.5">
               <ArtSvgIcon icon="ri:map-pin-line" class="text-g-700" />
-              <span class="ml-2 text-sm">广东省深圳市</span>
+              <span class="ml-2 text-sm">{{ form.address || '未设置地址' }}</span>
             </div>
             <div class="mt-2.5">
               <ArtSvgIcon icon="ri:dribbble-fill" class="text-g-700" />
@@ -149,6 +149,11 @@
 <script setup lang="ts">
   import { useUserStore } from '@/store/modules/user'
   import type { FormInstance, FormRules } from 'element-plus'
+  import {
+    fetchGetUserProfile,
+    fetchUpdateUserProfile,
+    fetchUpdateUserPassword
+  } from '@/api/system-manage'
 
   defineOptions({ name: 'UserCenter' })
 
@@ -164,22 +169,22 @@
    * 用户信息表单
    */
   const form = reactive({
-    realName: 'John Snow',
-    nikeName: '皮卡丘',
-    email: '59301283@mall.com',
-    mobile: '18888888888',
-    address: '广东省深圳市宝安区西乡街道101栋201',
-    sex: '2',
-    des: 'Art Design Pro 是一款兼具设计美学与高效开发的后台系统.'
+    realName: '',
+    nikeName: '',
+    email: '',
+    mobile: '',
+    address: '',
+    sex: 1,
+    des: ''
   })
 
   /**
    * 密码修改表单
    */
   const pwdForm = reactive({
-    password: '123456',
-    newPassword: '123456',
-    confirmPassword: '123456'
+    password: '',
+    newPassword: '',
+    confirmPassword: ''
   })
 
   /**
@@ -204,8 +209,9 @@
    * 性别选项
    */
   const options = [
-    { value: '1', label: '男' },
-    { value: '2', label: '女' }
+    { value: 1, label: '男' },
+    { value: 0, label: '女' },
+    { value: -1, label: '未知' }
   ]
 
   /**
@@ -215,7 +221,46 @@
 
   onMounted(() => {
     getDate()
+    loadProfile()
   })
+
+  /**
+   * 加载个人资料
+   */
+  const loadProfile = async () => {
+    try {
+      const res = await fetchGetUserProfile()
+      if (res) {
+        let s = 1
+        if (
+          res.userGender === 0 ||
+          res.userGender === '0' ||
+          res.gender === 0 ||
+          res.gender === '0'
+        )
+          s = 0
+        else if (
+          res.userGender === -1 ||
+          res.userGender === '-1' ||
+          res.gender === -1 ||
+          res.gender === '-1'
+        )
+          s = -1
+
+        Object.assign(form, {
+          realName: res.realName || '',
+          nikeName: res.nickName || res.nickname || '',
+          email: res.userEmail || res.email || '',
+          mobile: res.userPhone || res.phone || '',
+          address: res.address || '',
+          sex: s,
+          des: res.description || ''
+        })
+      }
+    } catch (e) {
+      console.error('发生了错误：' + e)
+    }
+  }
 
   /**
    * 根据当前时间获取问候语
@@ -234,14 +279,45 @@
   /**
    * 切换用户信息编辑状态
    */
-  const edit = () => {
-    isEdit.value = !isEdit.value
+  const edit = async () => {
+    if (isEdit.value) {
+      try {
+        await fetchUpdateUserProfile(form)
+        ElMessage.success('保存信息成功')
+        isEdit.value = false
+      } catch (e: any) {
+        ElMessage.error(e.message || '保存失败')
+      }
+    } else {
+      isEdit.value = true
+    }
   }
 
   /**
    * 切换密码编辑状态
    */
-  const editPwd = () => {
-    isEditPwd.value = !isEditPwd.value
+  const editPwd = async () => {
+    if (isEditPwd.value) {
+      if (!pwdForm.newPassword) {
+        ElMessage.warning('请输入新密码')
+        return
+      }
+      if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+        ElMessage.warning('两次输入的密码不一致')
+        return
+      }
+      try {
+        await fetchUpdateUserPassword(pwdForm)
+        ElMessage.success('修改密码成功')
+        isEditPwd.value = false
+        pwdForm.password = ''
+        pwdForm.newPassword = ''
+        pwdForm.confirmPassword = ''
+      } catch (e: any) {
+        ElMessage.error(e.message || '修改密码失败')
+      }
+    } else {
+      isEditPwd.value = true
+    }
   }
 </script>

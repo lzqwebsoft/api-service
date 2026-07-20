@@ -45,7 +45,7 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { ACCOUNT_TABLE_DATA } from '@/mock/temp/formData'
   import { useTable } from '@/hooks/core/useTable'
-  import { fetchGetUserList } from '@/api/system-manage'
+  import { fetchGetUserList, fetchDeleteUser } from '@/api/system-manage'
   import UserSearch from './modules/user-search.vue'
   import UserDialog from './modules/user-dialog.vue'
   import { ElTag, ElMessageBox, ElImage } from 'element-plus'
@@ -73,23 +73,27 @@
   })
 
   // 用户状态配置
-  const USER_STATUS_CONFIG = {
-    '1': { type: 'success' as const, text: '在线' },
-    '2': { type: 'info' as const, text: '离线' },
-    '3': { type: 'warning' as const, text: '异常' },
-    '4': { type: 'danger' as const, text: '注销' }
-  } as const
+  const USER_STATUS_CONFIG: Record<
+    string,
+    { type: 'success' | 'info' | 'warning' | 'danger'; text: string }
+  > = {
+    '1': { type: 'success', text: '在线' },
+    '2': { type: 'info', text: '离线' },
+    '3': { type: 'warning', text: '异常' },
+    '4': { type: 'danger', text: '注销' }
+  }
+
+  const GENDER_MAP: Record<string, string> = {
+    '-1': '未知',
+    '0': '女',
+    '1': '男'
+  }
 
   /**
    * 获取用户状态配置
    */
   const getUserStatusConfig = (status: string) => {
-    return (
-      USER_STATUS_CONFIG[status as keyof typeof USER_STATUS_CONFIG] || {
-        type: 'info' as const,
-        text: '未知'
-      }
-    )
+    return USER_STATUS_CONFIG[status] || { type: 'info', text: '未知' }
   }
 
   const {
@@ -124,7 +128,7 @@
         {
           prop: 'userInfo',
           label: '用户名',
-          width: 280,
+          width: 250,
           // visible: false, // 默认是否显示列
           formatter: (row) => {
             return h('div', { class: 'user flex-c' }, [
@@ -146,9 +150,25 @@
           prop: 'userGender',
           label: '性别',
           sortable: true,
-          formatter: (row) => row.userGender
+          formatter: (row) => GENDER_MAP[row.userGender] || '未知'
         },
-        { prop: 'userPhone', label: '手机号' },
+        { prop: 'userPhone', width: 120, label: '手机号' },
+        {
+          prop: 'userRoles',
+          label: '角色类型',
+          minWidth: 140,
+          formatter: (row) => {
+            const roles: string[] = Array.isArray(row.userRoles) ? row.userRoles : []
+            if (!roles.length) return '-'
+            return h(
+              'div',
+              { class: 'flex flex-wrap gap-1' },
+              roles.map((role) =>
+                h(ElTag, { type: 'primary', size: 'small', effect: 'light' }, () => role)
+              )
+            )
+          }
+        },
         {
           prop: 'status',
           label: '状态',
@@ -160,7 +180,15 @@
         {
           prop: 'createTime',
           label: '创建日期',
-          sortable: true
+          width: 180,
+          sortable: true,
+          formatter: (row) => {
+            if (!row.createTime) return '-'
+            const d = new Date(row.createTime)
+            if (isNaN(d.getTime())) return row.createTime
+            const pad = (n: number) => (n < 10 ? '0' + n : n)
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+          }
         },
         {
           prop: 'operation',
@@ -227,14 +255,17 @@
    * 删除用户
    */
   const deleteUser = (row: UserListItem): void => {
-    console.log('删除用户:', row)
-    ElMessageBox.confirm(`确定要注销该用户吗？`, '注销用户', {
+    ElMessageBox.confirm(`确定要注销用户"${row.userName}"吗？`, '注销用户', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'error'
-    }).then(() => {
-      ElMessage.success('注销成功')
     })
+      .then(async () => {
+        await fetchDeleteUser({ id: row.id })
+        ElMessage.success('注销成功')
+        refreshData()
+      })
+      .catch(() => {})
   }
 
   /**
@@ -244,6 +275,7 @@
     try {
       dialogVisible.value = false
       currentUserData.value = {}
+      refreshData()
     } catch (error) {
       console.error('提交失败:', error)
     }
