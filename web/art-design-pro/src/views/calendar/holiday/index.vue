@@ -47,7 +47,7 @@
       :show-reset-button="true"
       :show-search-button="true"
       :disabled-search-button="false"
-      label-width="90px"
+      label-width="auto"
       @search="handleSearch"
       @reset="handleReset"
     />
@@ -596,5 +596,9 @@
     height: 6rem !important;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
+  }
+
+  :deep(.art-search-bar .el-form-item__label) {
+    white-space: nowrap;
   }
 </style>

@@ -2,7 +2,6 @@
  * 快速入口配置
  * 包含：应用列表、快速链接等配置
  */
-import { WEB_LINKS } from '@/utils/constants'
 import type { FastEnterConfig } from '@/types/config'
 
 const fastEnterConfig: FastEnterConfig = {
@@ -20,106 +19,88 @@ const fastEnterConfig: FastEnterConfig = {
       routeName: 'Console'
     },
     {
-      name: '分析页',
-      description: '数据分析与可视化',
-      icon: 'ri:game-line',
-      iconColor: '#ff3b30',
-      enabled: true,
-      order: 2,
-      routeName: 'Analysis'
-    },
-    {
-      name: '礼花效果',
-      description: '动画特效展示',
-      icon: 'ri:loader-line',
-      iconColor: '#7A7FFF',
-      enabled: true,
-      order: 3,
-      routeName: 'Fireworks'
-    },
-    {
-      name: '聊天',
-      description: '即时通讯功能',
-      icon: 'ri:user-line',
-      iconColor: '#13DEB9',
-      enabled: true,
-      order: 4,
-      routeName: 'Chat'
-    },
-    {
-      name: '官方文档',
-      description: '使用指南与开发文档',
-      icon: 'ri:bill-line',
+      name: '应用管理',
+      description: '管理客户端 App 及 Token 签发',
+      icon: 'ri:apps-line',
       iconColor: '#ffb100',
       enabled: true,
-      order: 5,
-      link: WEB_LINKS.DOCS
+      order: 2,
+      routeName: 'Apps'
     },
     {
-      name: '技术支持',
-      description: '技术支持与问题反馈',
-      icon: 'ri:user-location-line',
+      name: 'Token 黑名单',
+      description: 'Token 撤销与黑名单管制',
+      icon: 'ri:forbid-line',
       iconColor: '#ff6b6b',
       enabled: true,
+      order: 3,
+      routeName: 'Blacklist'
+    },
+    {
+      name: '鉴权日志',
+      description: 'API 访问日志与拦截记录',
+      icon: 'ri:file-list-line',
+      iconColor: '#10b981',
+      enabled: true,
+      order: 4,
+      routeName: 'Logs'
+    },
+    {
+      name: '节假日日历',
+      description: '排班与法定节假日调休管理',
+      icon: 'ri:calendar-todo-line',
+      iconColor: '#8b5cf6',
+      enabled: true,
+      order: 5,
+      routeName: 'Holiday'
+    },
+    {
+      name: '用户管理',
+      description: '系统管理员账号与角色配置',
+      icon: 'ri:user-3-line',
+      iconColor: '#ec4899',
+      enabled: true,
       order: 6,
-      link: WEB_LINKS.COMMUNITY
-    },
-    {
-      name: '更新日志',
-      description: '版本更新与变更记录',
-      icon: 'ri:gamepad-line',
-      iconColor: '#38C0FC',
-      enabled: true,
-      order: 7,
-      routeName: 'ChangeLog'
-    },
-    {
-      name: '哔哩哔哩',
-      description: '技术分享与交流',
-      icon: 'ri:bilibili-line',
-      iconColor: '#FB7299',
-      enabled: true,
-      order: 8,
-      link: WEB_LINKS.BILIBILI
+      routeName: 'User'
     }
   ],
   // 快速链接
   quickLinks: [
     {
-      name: '登录',
+      name: '工作台',
       enabled: true,
       order: 1,
-      routeName: 'Login'
+      routeName: 'Console'
     },
     {
-      name: '注册',
+      name: '应用管理',
       enabled: true,
       order: 2,
-      routeName: 'Register'
+      routeName: 'Apps'
     },
     {
-      name: '忘记密码',
+      name: 'Token 黑名单',
       enabled: true,
       order: 3,
-      routeName: 'ForgetPassword'
+      routeName: 'Blacklist'
     },
     {
-      name: '定价',
+      name: '鉴权日志',
       enabled: true,
       order: 4,
-      routeName: 'Pricing'
+      routeName: 'Logs'
+    },
+    {
+      name: '用户管理',
+      enabled: true,
+      order: 5,
+      routeName: 'User'
     },
     {
       name: '个人中心',
       enabled: true,
-      order: 5,
-      routeName: 'UserCenter'
-    },
-    {
-      name: '留言管理',
-      enabled: true,
       order: 6,
-      routeName: 'ArticleComment'
+      routeName: 'UserCenter'
     }
   ]
 }

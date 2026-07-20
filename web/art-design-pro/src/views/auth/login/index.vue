@@ -40,9 +40,9 @@
               <ElCheckbox v-model="formData.rememberPassword">{{
                 $t('login.rememberPwd')
               }}</ElCheckbox>
-              <RouterLink class="text-theme" :to="{ name: 'ForgetPassword' }">{{
+              <!-- <RouterLink class="text-theme" :to="{ name: 'ForgetPassword' }">{{
                 $t('login.forgetPwd')
-              }}</RouterLink>
+              }}</RouterLink> -->
             </div>
 
             <div style="margin-top: 30px">
@@ -57,12 +57,12 @@
               </ElButton>
             </div>
 
-            <div class="mt-5 text-sm text-gray-600">
+            <!-- <div class="mt-5 text-sm text-gray-600">
               <span>{{ $t('login.noAccount') }}</span>
               <RouterLink class="text-theme" :to="{ name: 'Register' }">{{
                 $t('login.register')
               }}</RouterLink>
-            </div>
+            </div> -->
           </ElForm>
         </div>
       </div>
@@ -99,17 +99,17 @@
   import AppConfig from '@/config'
   import { useUserStore } from '@/store/modules/user'
   import { useI18n } from 'vue-i18n'
-  import { HttpError } from '@/utils/http/error'
+  // import { HttpError } from '@/utils/http/error'
   import { fetchLogin, fetchSlideCaptcha } from '@/api/auth'
   import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
-  import { useSettingStore } from '@/store/modules/setting'
+  // import { useSettingStore } from '@/store/modules/setting'
   import { Slide } from 'go-captcha-vue'
   import 'go-captcha-vue/dist/style.css'
 
   defineOptions({ name: 'Login' })
 
-  const settingStore = useSettingStore()
-  const { isDark } = storeToRefs(settingStore)
+  // const settingStore = useSettingStore()
+  // const { isDark } = storeToRefs(settingStore)
   const { t, locale } = useI18n()
   const formKey = ref(0)
 
@@ -141,7 +141,6 @@
   // 滑动验证码状态
   const captchaVisible = ref(false)
   const captchaId = ref('')
-  const slideRef = ref()
   const captchaData = reactive({
     image: '',
     thumb: '',

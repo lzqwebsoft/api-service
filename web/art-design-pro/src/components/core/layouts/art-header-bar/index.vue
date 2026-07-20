@@ -110,24 +110,24 @@
         </ElDropdown>
 
         <!-- 通知按钮 -->
-        <ArtIconButton
+        <!-- <ArtIconButton
           v-if="shouldShowNotification"
           icon="ri:notification-2-line"
           class="notice-button relative"
           @click="visibleNotice"
         >
           <div class="absolute top-2 right-2 size-1.5 !bg-danger rounded-full"></div>
-        </ArtIconButton>
+        </ArtIconButton> -->
 
         <!-- 聊天按钮 -->
-        <ArtIconButton
+        <!-- <ArtIconButton
           v-if="shouldShowChat"
           icon="ri:message-3-line"
           class="chat-button relative"
           @click="openChat"
         >
           <div class="breathing-dot absolute top-2 right-2 size-1.5 !bg-success rounded-full"></div>
-        </ArtIconButton>
+        </ArtIconButton> -->
 
         <!-- 设置按钮 -->
         <div v-if="shouldShowSettings">
@@ -164,7 +164,7 @@
     <ArtWorkTab />
 
     <!-- 通知 -->
-    <ArtNotification v-model:value="showNotice" ref="notice" />
+    <!-- <ArtNotification v-model:value="showNotice" ref="notice" /> -->
   </div>
 </template>
 
@@ -205,8 +205,8 @@
     shouldShowBreadcrumb,
     shouldShowGlobalSearch,
     shouldShowFullscreen,
-    shouldShowNotification,
-    shouldShowChat,
+    // shouldShowNotification,
+    // shouldShowChat,
     shouldShowLanguage,
     shouldShowSettings,
     shouldShowThemeToggle,
@@ -219,8 +219,8 @@
   const { language } = storeToRefs(userStore)
   const { menuList } = storeToRefs(menuStore)
 
-  const showNotice = ref(false)
-  const notice = ref(null)
+  // const showNotice = ref(false)
+  // const notice = ref(null)
 
   // 菜单类型判断
   const isLeftMenu = computed(() => menuType.value === MenuTypeEnum.LEFT)
@@ -232,12 +232,12 @@
 
   onMounted(() => {
     initLanguage()
-    document.addEventListener('click', bodyCloseNotice)
+    // document.addEventListener('click', bFodyCloseNotice)
   })
 
-  onUnmounted(() => {
-    document.removeEventListener('click', bodyCloseNotice)
-  })
+  // onUnmounted(() => {
+  //   document.removeEventListener('click', bodyCloseNotice)
+  // })
 
   /**
    * 切换全屏状态
@@ -310,37 +310,37 @@
     mittBus.emit('openSearchDialog')
   }
 
-  /**
-   * 点击页面其他区域关闭通知面板
-   * @param {Event} e - 点击事件对象
-   */
-  const bodyCloseNotice = (e: any): void => {
-    if (!showNotice.value) return
+  // /**
+  //  * 点击页面其他区域关闭通知面板
+  //  * @param {Event} e - 点击事件对象
+  //  */
+  // const bodyCloseNotice = (e: any): void => {
+  //   if (!showNotice.value) return
 
-    const target = e.target as HTMLElement
+  //   const target = e.target as HTMLElement
 
-    // 检查是否点击了通知按钮或通知面板内部
-    const isNoticeButton = target.closest('.notice-button')
-    const isNoticePanel = target.closest('.art-notification-panel')
+  //   // 检查是否点击了通知按钮或通知面板内部
+  //   const isNoticeButton = target.closest('.notice-button')
+  //   const isNoticePanel = target.closest('.art-notification-panel')
 
-    if (!isNoticeButton && !isNoticePanel) {
-      showNotice.value = false
-    }
-  }
+  //   if (!isNoticeButton && !isNoticePanel) {
+  //     showNotice.value = false
+  //   }
+  // }
 
-  /**
-   * 切换通知面板显示状态
-   */
-  const visibleNotice = (): void => {
-    showNotice.value = !showNotice.value
-  }
+  // /**
+  //  * 切换通知面板显示状态
+  //  */
+  // const visibleNotice = (): void => {
+  //   showNotice.value = !showNotice.value
+  // }
 
-  /**
-   * 打开聊天窗口
-   */
-  const openChat = (): void => {
-    mittBus.emit('openChat')
-  }
+  // /**
+  //  * 打开聊天窗口
+  //  */
+  // const openChat = (): void => {
+  //   mittBus.emit('openChat')
+  // }
 </script>
 
 <style lang="scss" scoped>

@@ -388,8 +388,8 @@
   },
   "login": {
     "leftView": {
-      "title": "A backend system of beauty and efficiency",
-      "subTitle": "A sleek and practical interface for a great user experience"
+      "title": "High-Performance API Access Control & Application Authorization Service",
+      "subTitle": "Built with Go net/http & MySQL, providing secure API authentication and token management"
     },
     "title": "Welcome back",
     "subTitle": "Please enter your account and password to login",
@@ -503,7 +503,7 @@
       "menu": "Menu Manage"
     },
     "token": {
-      "title": "Token Management",
+      "title": "App Management",
       "apps": "Apps & Tokens",
       "blacklist": "Token Blacklist",
       "logs": "Access Logs"
