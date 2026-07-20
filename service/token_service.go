@@ -34,7 +34,7 @@ type TokenService interface {
 	AddToBlacklist(ctx context.Context, blacklist *models.TokenBlacklist) error
 	RemoveFromBlacklist(ctx context.Context, id int) error
 	ListBlacklist(ctx context.Context) ([]*models.TokenBlacklist, error)
-	IsBlacklisted(ctx context.Context, token, userUUID string) (bool, error)
+	IsBlacklisted(ctx context.Context, tokenID int, userUUID string) (bool, error)
 
 	// Log methods
 	LogAccess(ctx context.Context, log *models.TokenAccessLog) error
@@ -139,6 +139,19 @@ func (s *tokenService) ListTokensByApp(ctx context.Context, appID string, versio
 }
 
 func (s *tokenService) AddToBlacklist(ctx context.Context, blacklist *models.TokenBlacklist) error {
+	if blacklist.TokenID == 0 && blacklist.Token != "" {
+		details, err := s.tokenRepo.GetDetails(ctx, blacklist.Token)
+		if err != nil {
+			return err
+		}
+		if details == nil {
+			return ErrInvalidToken
+		}
+		blacklist.TokenID = details.ID
+	}
+	if blacklist.TokenID == 0 {
+		return errors.New("token_id is required")
+	}
 	return s.blacklistRepo.Create(ctx, blacklist)
 }
 
@@ -150,8 +163,8 @@ func (s *tokenService) ListBlacklist(ctx context.Context) ([]*models.TokenBlackl
 	return s.blacklistRepo.List(ctx)
 }
 
-func (s *tokenService) IsBlacklisted(ctx context.Context, token, userUUID string) (bool, error) {
-	return s.blacklistRepo.IsBlacklisted(ctx, token, userUUID)
+func (s *tokenService) IsBlacklisted(ctx context.Context, tokenID int, userUUID string) (bool, error) {
+	return s.blacklistRepo.IsBlacklisted(ctx, tokenID, userUUID)
 }
 
 func (s *tokenService) LogAccess(ctx context.Context, log *models.TokenAccessLog) error {

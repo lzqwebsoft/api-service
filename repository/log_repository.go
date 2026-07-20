@@ -24,8 +24,8 @@ func NewLogRepository(db *sql.DB) LogRepository {
 }
 
 func (r *mysqlLogRepository) Create(ctx context.Context, entry *models.TokenAccessLog) error {
-	query := `INSERT INTO token_access_logs (token, platform, version, user_uuid, ip, api_path) VALUES (?, ?, ?, ?, ?, ?)`
-	result, err := r.db.ExecContext(ctx, query, entry.Token, entry.Platform, entry.Version, entry.UserUUID, entry.IP, entry.APIPath)
+	query := `INSERT INTO token_access_logs (token_id, user_uuid, ip, ip_location, api_path) VALUES (?, ?, ?, ?, ?)`
+	result, err := r.db.ExecContext(ctx, query, entry.TokenID, entry.UserUUID, entry.IP, entry.IPLocation, entry.APIPath)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,12 @@ func (r *mysqlLogRepository) List(ctx context.Context, limit, offset int) ([]*mo
 		return nil, 0, err
 	}
 
-	query := `SELECT id, token, platform, version, user_uuid, ip, api_path, created_at FROM token_access_logs ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	query := `
+		SELECT l.id, l.token_id, t.token, a.app_id, a.name, t.platform, a.version, l.user_uuid, l.ip, l.ip_location, l.api_path, l.created_at
+		FROM token_access_logs l
+		JOIN tokens t ON l.token_id = t.id
+		JOIN apps a ON t.app_record_id = a.id
+		ORDER BY l.created_at DESC LIMIT ? OFFSET ?`
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, 0, err
@@ -54,7 +59,20 @@ func (r *mysqlLogRepository) List(ctx context.Context, limit, offset int) ([]*mo
 	var list []*models.TokenAccessLog
 	for rows.Next() {
 		var entry models.TokenAccessLog
-		err := rows.Scan(&entry.ID, &entry.Token, &entry.Platform, &entry.Version, &entry.UserUUID, &entry.IP, &entry.APIPath, &entry.CreatedAt)
+		err := rows.Scan(
+			&entry.ID,
+			&entry.TokenID,
+			&entry.Token,
+			&entry.AppID,
+			&entry.AppName,
+			&entry.Platform,
+			&entry.Version,
+			&entry.UserUUID,
+			&entry.IP,
+			&entry.IPLocation,
+			&entry.APIPath,
+			&entry.CreatedAt,
+		)
 		if err != nil {
 			return nil, 0, err
 		}

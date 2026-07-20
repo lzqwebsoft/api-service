@@ -106,23 +106,22 @@ CREATE TABLE IF NOT EXISTS `admin_menu_auths` (
 
 CREATE TABLE IF NOT EXISTS `token_blacklist` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `token` VARCHAR(255) NOT NULL,
-    `platform` VARCHAR(20) NOT NULL,
-    `version` VARCHAR(50) NOT NULL,
+    `token_id` INT NOT NULL,
     `user_uuid` VARCHAR(100) NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY `idx_token_user` (`token`, `user_uuid`)
+    UNIQUE KEY `idx_token_user` (`token_id`, `user_uuid`),
+    CONSTRAINT `fk_token_blacklist_token` FOREIGN KEY (`token_id`) REFERENCES `tokens` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `token_access_logs` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `token` VARCHAR(255) NOT NULL,
-    `platform` VARCHAR(20) NOT NULL,
-    `version` VARCHAR(50) NOT NULL,
+    `token_id` INT NOT NULL,
     `user_uuid` VARCHAR(100) NOT NULL,
     `ip` VARCHAR(45) NOT NULL,
+    `ip_location` VARCHAR(100) DEFAULT '' COMMENT 'IP归属地',
     `api_path` VARCHAR(255) NOT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_token_access_logs_token` FOREIGN KEY (`token_id`) REFERENCES `tokens` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `calendar_exception`  (
@@ -149,3 +148,16 @@ CREATE TABLE `holiday` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB COMMENT='标准节假日定义表';
+
+CREATE TABLE IF NOT EXISTS `user_feedback` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `token_id` INT NOT NULL COMMENT '关联 Token ID',
+    `user_uuid` VARCHAR(100) DEFAULT '' COMMENT '用户 UUID',
+    `content` TEXT NOT NULL COMMENT '反馈意见内容',
+    `contact` VARCHAR(255) DEFAULT '' COMMENT '联系方式（邮箱/手机号/微信等）',
+    `ip` VARCHAR(45) DEFAULT '' COMMENT '客户端IP',
+    `ip_location` VARCHAR(255) DEFAULT '' COMMENT 'IP归属性地',
+    `status` INT DEFAULT 0 COMMENT '处理状态 0:待处理 1:已处理',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_user_feedback_token` FOREIGN KEY (`token_id`) REFERENCES `tokens` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户意见反馈表';

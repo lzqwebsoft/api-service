@@ -53,6 +53,7 @@ func main() {
 	holidayRepo := repository.NewHolidayRepository(sqlDB)
 	menuRepo := repository.NewMenuRepository(sqlDB)
 	roleRepo := repository.NewRoleRepository(sqlDB)
+	feedbackRepo := repository.NewFeedbackRepository(sqlDB)
 
 	// Seed default administrator if DB is empty
 	db.SeedAdminUser(adminRepo)
@@ -66,6 +67,7 @@ func main() {
 	holidayService := service.NewHolidayService(holidayRepo)
 	menuService := service.NewMenuService(menuRepo)
 	roleService := service.NewRoleService(roleRepo)
+	feedbackService := service.NewFeedbackService(feedbackRepo)
 
 	// 5. Initialize handlers (Controller Layer)
 	adminBase := admin.NewBaseHandler(embeddedFS)
@@ -89,6 +91,7 @@ func main() {
 		// 开放API接口
 		api.NewResourceHandler(apiBase, calendarService),
 		api.NewCalendarHandler(apiBase, calendarService, holidayService, clientAuth),
+		api.NewFeedbackHandler(apiBase, feedbackService, clientAuth),
 	}
 
 	// 6. Register routes

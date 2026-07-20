@@ -24,6 +24,7 @@
                     <th>客户端版本</th>
                     <th>访问用户 UUID</th>
                     <th>来源 IP</th>
+                    <th>IP 归属地</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -51,6 +52,9 @@
                     </td>
                     <td><span
                             class="font-monospace font-sm text-muted">{{.IP}}</span>
+                    </td>
+                    <td><span
+                            class="font-sm text-muted">{{.IPLocation}}</span>
                     </td>
                     <td>
                         {{if .UserUUID}}

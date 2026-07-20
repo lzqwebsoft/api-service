@@ -54,30 +54,65 @@
     </ElCard>
 
     <!-- Dialog: Add Blacklist Entry -->
-    <ElDialog v-model="addDialogVisible" :title="t('blacklistManage.addBtn')" width="500px">
+    <ElDialog v-model="addDialogVisible" :title="t('blacklistManage.addBtn')" width="520px">
       <ElForm :model="addForm" label-width="120px" :rules="formRules" ref="addFormRef">
-        <ElFormItem :label="t('blacklistManage.token')" prop="token">
-          <ElInput v-model="addForm.token" :placeholder="t('blacklistManage.placeholderToken')" />
+        <!-- Step 1: 应用名称 -->
+        <ElFormItem :label="t('blacklistManage.appName')" prop="appName">
+          <ElSelect
+            v-model="addForm.appName"
+            placeholder="请选择应用名称"
+            style="width: 100%"
+            @change="handleAppNameChange"
+          >
+            <ElOption v-for="name in appNameOptions" :key="name" :label="name" :value="name" />
+          </ElSelect>
         </ElFormItem>
+
+        <!-- Step 2: 平台 -->
         <ElFormItem :label="t('blacklistManage.platform')" prop="platform">
           <ElSelect
             v-model="addForm.platform"
-            :placeholder="t('blacklistManage.placeholderPlatform')"
+            placeholder="请选择平台"
             style="width: 100%"
+            :disabled="!addForm.appName"
+            @change="handlePlatformChange"
           >
-            <ElOption label="android" value="android" />
-            <ElOption label="iOS" value="iOS" />
-            <ElOption label="windows" value="windows" />
-            <ElOption label="Linux" value="Linux" />
-            <ElOption label="mac" value="mac" />
+            <ElOption v-for="p in platformOptions" :key="p" :label="p" :value="p" />
           </ElSelect>
         </ElFormItem>
+
+        <!-- Step 3: 版本 -->
         <ElFormItem :label="t('blacklistManage.version')" prop="version">
-          <ElInput
+          <ElSelect
             v-model="addForm.version"
-            :placeholder="t('blacklistManage.placeholderVersion')"
-          />
+            placeholder="请选择版本"
+            style="width: 100%"
+            :disabled="!addForm.platform"
+            @change="handleVersionChange"
+          >
+            <ElOption v-for="v in versionOptions" :key="v" :label="v" :value="v" />
+          </ElSelect>
         </ElFormItem>
+
+        <!-- Step 4: Token -->
+        <ElFormItem :label="t('blacklistManage.token')" prop="token_id">
+          <ElSelect
+            v-model="addForm.token_id"
+            placeholder="请选择 Access Token"
+            style="width: 100%"
+            :disabled="!addForm.version"
+            @change="handleTokenChange"
+          >
+            <ElOption
+              v-for="item in tokenOptions"
+              :key="item.id"
+              :label="item.token"
+              :value="item.id"
+            />
+          </ElSelect>
+        </ElFormItem>
+
+        <!-- Step 5: 用户 UUID -->
         <ElFormItem :label="t('blacklistManage.userUuid')" prop="user_uuid">
           <ElInput
             v-model="addForm.user_uuid"
@@ -102,7 +137,12 @@
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { useWindowSize } from '@vueuse/core'
-  import { fetchGetBlacklist, fetchAddBlacklist, fetchDeleteBlacklist } from '@/api/token'
+  import {
+    fetchGetBlacklist,
+    fetchAddBlacklist,
+    fetchDeleteBlacklist,
+    fetchGetTokens
+  } from '@/api/token'
 
   defineOptions({ name: 'Blacklist' })
 
@@ -117,27 +157,98 @@
   const loading = ref(false)
   const blacklist = ref<any[]>([])
   const addDialogVisible = ref(false)
+  const allTokensList = ref<any[]>([])
 
   const addForm = reactive({
-    token: '',
-    platform: 'android',
+    appName: '',
+    platform: '',
     version: '',
+    token_id: undefined as number | undefined,
+    token: '',
     user_uuid: ''
   })
 
   // Reactive translation rules
   const formRules = computed(() => ({
-    token: [{ required: true, message: t('blacklistManage.ruleToken'), trigger: 'blur' }],
-    platform: [{ required: true, message: t('blacklistManage.rulePlatform'), trigger: 'change' }],
-    version: [{ required: true, message: t('blacklistManage.ruleVersion'), trigger: 'blur' }],
+    appName: [{ required: true, message: '请选择应用名称', trigger: 'change' }],
+    platform: [{ required: true, message: '请选择平台', trigger: 'change' }],
+    version: [{ required: true, message: '请选择版本', trigger: 'change' }],
+    token_id: [{ required: true, message: '请选择 Access Token', trigger: 'change' }],
     user_uuid: [{ required: true, message: t('blacklistManage.ruleUserUuid'), trigger: 'blur' }]
   }))
 
   const addFormRef = ref()
 
+  // Computed cascaded options
+  const appNameOptions = computed(() => {
+    const set = new Set<string>()
+    allTokensList.value.forEach((item) => {
+      if (item.app_name) set.add(item.app_name)
+    })
+    return Array.from(set)
+  })
+
+  const platformOptions = computed(() => {
+    if (!addForm.appName) return []
+    const set = new Set<string>()
+    allTokensList.value
+      .filter((item) => item.app_name === addForm.appName)
+      .forEach((item) => {
+        if (item.platform) set.add(item.platform)
+      })
+    return Array.from(set)
+  })
+
+  const versionOptions = computed(() => {
+    if (!addForm.appName || !addForm.platform) return []
+    const set = new Set<string>()
+    allTokensList.value
+      .filter((item) => item.app_name === addForm.appName && item.platform === addForm.platform)
+      .forEach((item) => {
+        if (item.version) set.add(item.version)
+      })
+    return Array.from(set)
+  })
+
+  const tokenOptions = computed(() => {
+    if (!addForm.appName || !addForm.platform || !addForm.version) return []
+    return allTokensList.value.filter(
+      (item) =>
+        item.app_name === addForm.appName &&
+        item.platform === addForm.platform &&
+        item.version === addForm.version
+    )
+  })
+
+  const handleAppNameChange = () => {
+    addForm.platform = ''
+    addForm.version = ''
+    addForm.token_id = undefined
+    addForm.token = ''
+  }
+
+  const handlePlatformChange = () => {
+    addForm.version = ''
+    addForm.token_id = undefined
+    addForm.token = ''
+  }
+
+  const handleVersionChange = () => {
+    addForm.token_id = undefined
+    addForm.token = ''
+  }
+
+  const handleTokenChange = (val: number) => {
+    const found = allTokensList.value.find((item) => item.id === val)
+    if (found) {
+      addForm.token = found.token
+    }
+  }
+
   // Use the useTableColumns hook to manage visible/hidden columns, table checks and icons
   const { columns, columnChecks } = useTableColumns(() => [
     { type: 'globalIndex', label: t('blacklistManage.index'), width: 80, align: 'center' },
+    { prop: 'app_name', label: t('blacklistManage.appName'), minWidth: 140 },
     { prop: 'token', label: t('blacklistManage.token'), minWidth: 200, showOverflowTooltip: true },
     { prop: 'platform', label: t('blacklistManage.platform'), width: 120 },
     {
@@ -181,11 +292,21 @@
     }
   }
 
-  const openAddDialog = () => {
-    addForm.token = ''
-    addForm.platform = 'android'
+  const openAddDialog = async () => {
+    addForm.appName = ''
+    addForm.platform = ''
     addForm.version = ''
+    addForm.token_id = undefined
+    addForm.token = ''
     addForm.user_uuid = ''
+
+    try {
+      const res = await fetchGetTokens()
+      allTokensList.value = Array.isArray(res) ? res : res?.tokens || []
+    } catch (e: any) {
+      ElMessage.error('加载 Token 选项失败: ' + (e.message || ''))
+    }
+
     addDialogVisible.value = true
   }
 
@@ -193,7 +314,11 @@
     addFormRef.value?.validate(async (valid: boolean) => {
       if (!valid) return
       try {
-        await fetchAddBlacklist(addForm)
+        await fetchAddBlacklist({
+          token_id: addForm.token_id,
+          token: addForm.token,
+          user_uuid: addForm.user_uuid
+        })
         ElMessage.success(t('blacklistManage.successAdd'))
         addDialogVisible.value = false
         loadBlacklist()

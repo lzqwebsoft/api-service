@@ -43,7 +43,7 @@ func (r *mysqlTokenRepository) Create(ctx context.Context, token *models.Token) 
 
 func (r *mysqlTokenRepository) GetDetails(ctx context.Context, tokenStr string) (*models.TokenDetails, error) {
 	query := `
-		SELECT t.token, a.app_id, a.name, a.version, t.platform, a.is_active, t.is_revoked
+		SELECT t.id, t.token, a.app_id, a.name, a.version, t.platform, a.is_active, t.is_revoked
 		FROM tokens t
 		JOIN apps a ON t.app_record_id = a.id
 		WHERE t.token = ?`
@@ -52,6 +52,7 @@ func (r *mysqlTokenRepository) GetDetails(ctx context.Context, tokenStr string) 
 
 	var details models.TokenDetails
 	err := row.Scan(
+		&details.ID,
 		&details.Token,
 		&details.AppID,
 		&details.AppName,

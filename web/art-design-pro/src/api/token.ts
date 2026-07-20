@@ -31,9 +31,9 @@ export function fetchDeleteApp(data: { app_id: string; version: string }) {
   })
 }
 
-// Get tokens for specific app
-export function fetchGetTokens(params: { app_id: string; version: string }) {
-  return request.get<{ app: any; tokens: any[] }>({
+// Get tokens for specific app or all tokens
+export function fetchGetTokens(params?: { app_id?: string; version?: string }) {
+  return request.get<any>({
     url: '/admin/tokens',
     params
   })
@@ -63,12 +63,7 @@ export function fetchGetBlacklist() {
 }
 
 // Add token to blacklist
-export function fetchAddBlacklist(data: {
-  token: string
-  platform: string
-  version: string
-  user_uuid: string
-}) {
+export function fetchAddBlacklist(data: { token_id?: number; token?: string; user_uuid: string }) {
   return request.post({
     url: '/admin/blacklist/add',
     data
@@ -92,12 +87,7 @@ export function fetchGetLogs(params?: { current?: number; size?: number }) {
 }
 
 // Add token from logs to blacklist (One-click)
-export function fetchAddLogBlacklist(data: {
-  token: string
-  platform: string
-  version: string
-  user_uuid: string
-}) {
+export function fetchAddLogBlacklist(data: { token_id?: number; token?: string; user_uuid: string }) {
   return request.post({
     url: '/admin/logs/blacklist',
     data

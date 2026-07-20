@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"strings"
 
 	"api-service/models"
 	"api-service/service"
-	logger "api-service/utils"
+	"api-service/utils"
 )
 
 type contextKey string
@@ -20,6 +19,8 @@ const (
 	ContextKeyAppID contextKey = "app_id"
 	// ContextKeyVersion represents the key for the authenticated App Version in context
 	ContextKeyVersion contextKey = "version"
+	// ContextKeyTokenID represents the key for the authenticated Token ID in context
+	ContextKeyTokenID contextKey = "token_id"
 )
 
 type apiResponse struct {
@@ -37,7 +38,7 @@ func errorResponse(w http.ResponseWriter, statusCode int, errMsg string) {
 }
 
 func logAndErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int, errMsg string, details ...string) {
-	clientIP := getIP(r)
+	clientIP := utils.GetIPAddr(r)
 	authHeader := r.Header.Get("Authorization")
 	appID := r.Header.Get("X-App-ID")
 	userUUID := r.Header.Get("X-User-UUID")
@@ -55,31 +56,12 @@ func logAndErrorResponse(w http.ResponseWriter, r *http.Request, statusCode int,
 	)
 
 	if statusCode >= 500 {
-		logger.Errorf("%s", logMsg)
+		utils.Errorf("%s", logMsg)
 	} else {
-		logger.Warnf("%s", logMsg)
+		utils.Warnf("%s", logMsg)
 	}
 
 	errorResponse(w, statusCode, errMsg)
-}
-
-func getIP(r *http.Request) string {
-	ip := r.Header.Get("X-Forwarded-For")
-	if ip != "" {
-		return strings.TrimSpace(strings.Split(ip, ",")[0])
-	}
-	ip = r.Header.Get("X-Real-IP")
-	if ip != "" {
-		return strings.TrimSpace(ip)
-	}
-	host := r.RemoteAddr
-	if strings.Contains(host, ":") {
-		h, _, err := net.SplitHostPort(host)
-		if err == nil {
-			return h
-		}
-	}
-	return host
 }
 
 // AuthMiddleware creates a middleware that validates bearer tokens, verifies user blacklist, logs access, and populates request context
@@ -154,29 +136,29 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 				return
 			}
 
-			clientIP := getIP(r)
+			clientIP := utils.GetIPAddr(r)
 
 			// Log token access
 			accessLog := &models.TokenAccessLog{
-				Token:    tokenStr,
-				Platform: platform,
-				Version:  version,
-				UserUUID: userUUID,
-				IP:       clientIP,
-				APIPath:  r.URL.Path,
+				TokenID:    details.ID,
+				UserUUID:   userUUID,
+				IP:         clientIP,
+				IPLocation: utils.GetIPLocation(clientIP),
+				APIPath:    r.URL.Path,
 			}
 			_ = tokenService.LogAccess(r.Context(), accessLog)
 
 			// Verify if the token is blacklisted for this user
-			isBlocked, err := tokenService.IsBlacklisted(r.Context(), tokenStr, userUUID)
+			isBlocked, err := tokenService.IsBlacklisted(r.Context(), details.ID, userUUID)
 			if err == nil && isBlocked {
 				logAndErrorResponse(w, r, http.StatusUnauthorized, "Token has been blacklisted for this user")
 				return
 			}
 
-			// Inject the verified AppID and Version into the request context
+			// Inject the verified AppID, Version and TokenID into the request context
 			ctx := context.WithValue(r.Context(), ContextKeyAppID, details.AppID)
 			ctx = context.WithValue(ctx, ContextKeyVersion, details.Version)
+			ctx = context.WithValue(ctx, ContextKeyTokenID, details.ID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -197,4 +179,12 @@ func GetVersion(ctx context.Context) string {
 		return val
 	}
 	return ""
+}
+
+// GetTokenID retrieves the authenticated Token ID from context
+func GetTokenID(ctx context.Context) int {
+	if val, ok := ctx.Value(ContextKeyTokenID).(int); ok {
+		return val
+	}
+	return 0
 }

@@ -14,6 +14,7 @@ type Token struct {
 
 // TokenDetails encapsulates the state of a token combined with its parent application settings
 type TokenDetails struct {
+	ID          int    `json:"id"`
 	Token       string `json:"token"`
 	AppID       string `json:"app_id"`
 	AppName     string `json:"app_name"`

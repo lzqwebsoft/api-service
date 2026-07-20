@@ -89,6 +89,7 @@
   // Use the useTableColumns hook to manage visible/hidden columns, table checks and icons
   const { columns, columnChecks } = useTableColumns(() => [
     { type: 'globalIndex', label: t('logsManage.index'), width: 80, align: 'center' },
+    { prop: 'app_name', label: t('logsManage.appName') || '应用名称', minWidth: 120 },
     { prop: 'token', label: t('logsManage.token'), minWidth: 150, showOverflowTooltip: true },
     { prop: 'platform', label: t('logsManage.platform'), width: 100 },
     {
@@ -105,6 +106,12 @@
       showOverflowTooltip: true
     },
     { prop: 'ip', label: t('logsManage.ip'), width: 130 },
+    {
+      prop: 'ip_location',
+      label: t('logsManage.ipLocation'),
+      minWidth: 130,
+      showOverflowTooltip: true
+    },
     { prop: 'api_path', label: t('logsManage.apiPath'), minWidth: 180 },
     {
       prop: 'created_at',
@@ -168,9 +175,8 @@
     }).then(async () => {
       try {
         await fetchAddLogBlacklist({
+          token_id: row.token_id,
           token: row.token,
-          platform: row.platform,
-          version: row.version,
           user_uuid: row.user_uuid
         })
         ElMessage.success(t('logsManage.successBlock'))

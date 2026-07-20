@@ -45,7 +45,12 @@ func (h *TokenHandler) handleTokens(w http.ResponseWriter, r *http.Request) {
 	version := r.URL.Query().Get("version")
 
 	if appID == "" || version == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数错误: 缺失 app_id 或 version", nil)
+		tokens, err := h.tokenService.ListTokens(r.Context())
+		if err != nil {
+			handler.SendAdminJSON(w, http.StatusOK, 500, "加载 Token 失败: "+err.Error(), nil)
+			return
+		}
+		handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", tokens)
 		return
 	}
 

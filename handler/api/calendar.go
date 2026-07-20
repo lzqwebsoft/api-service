@@ -35,7 +35,7 @@ func (h *CalendarHandler) InitRoutes() []handler.Route {
 	mw := []func(http.Handler) http.Handler{h.clientAuth}
 	return []handler.Route{
 		{Method: http.MethodGet, Path: "/api/calendar", Handler: h.handleCalendar, Middlewares: mw},
-		{Method: http.MethodGet, Path: "/api/holidays", Handler: h.handleHolidays},
+		{Method: http.MethodGet, Path: "/api/holidays", Handler: h.handleHolidays, Middlewares: mw},
 	}
 }
 

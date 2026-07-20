@@ -71,6 +71,9 @@ func (h *LogHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
 	for _, b := range blacklist {
 		key := b.Token + ":" + b.UserUUID
 		blacklistedKeys[key] = true
+		if b.TokenID > 0 {
+			blacklistedKeys[strconv.Itoa(b.TokenID)+":"+b.UserUUID] = true
+		}
 	}
 
 	res := map[string]interface{}{
@@ -85,28 +88,26 @@ func (h *LogHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
 // handleLogsBlacklist processes one-click blacklisting from a log entry
 func (h *LogHandler) handleLogsBlacklist(w http.ResponseWriter, r *http.Request) {
 	var req struct {
+		TokenID  int    `json:"token_id"`
 		Token    string `json:"token"`
-		Platform string `json:"platform"`
-		Version  string `json:"version"`
 		UserUUID string `json:"user_uuid"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		_ = r.ParseForm()
+		tID, _ := strconv.Atoi(r.FormValue("token_id"))
+		req.TokenID = tID
 		req.Token = r.FormValue("token")
-		req.Platform = r.FormValue("platform")
-		req.Version = r.FormValue("version")
 		req.UserUUID = r.FormValue("user_uuid")
 	}
 
-	if req.Token == "" || req.UserUUID == "" {
+	if (req.TokenID == 0 && req.Token == "") || req.UserUUID == "" {
 		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 Token 或用户 UUID", nil)
 		return
 	}
 
 	entry := &models.TokenBlacklist{
+		TokenID:  req.TokenID,
 		Token:    req.Token,
-		Platform: req.Platform,
-		Version:  req.Version,
 		UserUUID: req.UserUUID,
 	}
 

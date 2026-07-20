@@ -53,28 +53,26 @@ func (h *BlacklistHandler) handleBlacklist(w http.ResponseWriter, r *http.Reques
 // handleAddBlacklist processes manually adding an entry to the blacklist
 func (h *BlacklistHandler) handleAddBlacklist(w http.ResponseWriter, r *http.Request) {
 	var req struct {
+		TokenID  int    `json:"token_id"`
 		Token    string `json:"token"`
-		Platform string `json:"platform"`
-		Version  string `json:"version"`
 		UserUUID string `json:"user_uuid"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		_ = r.ParseForm()
+		tID, _ := strconv.Atoi(r.FormValue("token_id"))
+		req.TokenID = tID
 		req.Token = r.FormValue("token")
-		req.Platform = r.FormValue("platform")
-		req.Version = r.FormValue("version")
 		req.UserUUID = r.FormValue("user_uuid")
 	}
 
-	if req.Token == "" || req.Platform == "" || req.Version == "" || req.UserUUID == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "所有字段均必填", nil)
+	if (req.TokenID == 0 && req.Token == "") || req.UserUUID == "" {
+		handler.SendAdminJSON(w, http.StatusOK, 400, "Token 或 Token ID 与 User UUID 均为必填", nil)
 		return
 	}
 
 	entry := &models.TokenBlacklist{
+		TokenID:  req.TokenID,
 		Token:    req.Token,
-		Platform: req.Platform,
-		Version:  req.Version,
 		UserUUID: req.UserUUID,
 	}
 
