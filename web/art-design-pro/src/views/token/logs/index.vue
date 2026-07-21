@@ -28,9 +28,39 @@
         @pagination:size-change="handleSizeChange"
         @pagination:current-change="handleCurrentChange"
       >
+        <!-- Custom slot: token -->
+        <template #token="{ row }">
+          <span class="font-mono text-xs text-gray-600 dark:text-gray-400">{{ row.token }}</span>
+        </template>
+
+        <!-- Custom slot: platform -->
+        <template #platform="{ row }">
+          <ElTooltip :content="row.platform" placement="top">
+            <ElTag
+              :type="getPlatformTagType(row.platform)"
+              size="small"
+              class="capitalize font-medium cursor-pointer"
+            >
+              <ArtSvgIcon :icon="getPlatformIcon(row.platform)" class="text-xs" />
+            </ElTag>
+          </ElTooltip>
+        </template>
+
         <!-- Custom slot: version -->
         <template #version="{ row }">
-          <ElTag size="small">{{ row.version }}</ElTag>
+          <ElTag size="small" type="info">{{ row.version }}</ElTag>
+        </template>
+
+        <!-- Custom slot: user_uuid -->
+        <template #user_uuid="{ row }">
+          <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{
+            row.user_uuid || '-'
+          }}</span>
+        </template>
+
+        <!-- Custom slot: ip -->
+        <template #ip="{ row }">
+          <span class="font-mono text-xs text-gray-500">{{ row.ip || '-' }}</span>
         </template>
 
         <!-- Custom slot: createdAt -->
@@ -40,18 +70,20 @@
 
         <!-- Custom slot: operation -->
         <template #operation="{ row }">
-          <ElTooltip
-            v-if="!isBlacklisted(row)"
-            :content="t('logsManage.blacklistBtn')"
-            placement="top"
-          >
-            <ArtButtonTable
-              icon="ri:forbid-line"
-              icon-class="bg-error/12 text-error"
-              @click="oneClickBlacklist(row)"
-            />
-          </ElTooltip>
-          <ElTag v-else type="info">{{ t('logsManage.blocked') }}</ElTag>
+          <div class="flex items-center justify-center">
+            <ElTooltip
+              v-if="!isBlacklisted(row)"
+              :content="t('logsManage.blacklistBtn')"
+              placement="top"
+            >
+              <ArtButtonTable
+                icon="ri:forbid-line"
+                icon-class="bg-error/12 text-error"
+                @click="oneClickBlacklist(row)"
+              />
+            </ElTooltip>
+            <ElTag v-else type="info">{{ t('logsManage.blocked') }}</ElTag>
+          </div>
         </template>
       </ArtTable>
     </ElCard>
@@ -70,7 +102,6 @@
 
   const { t } = useI18n()
 
-  // 计算实际的表格高度
   const computedTableHeight = computed(() => {
     return ''
   })
@@ -86,37 +117,58 @@
     total: 0
   })
 
-  // Use the useTableColumns hook to manage visible/hidden columns, table checks and icons
   const { columns, columnChecks } = useTableColumns(() => [
-    { type: 'globalIndex', label: t('logsManage.index'), width: 80, align: 'center' },
+    { type: 'globalIndex', label: t('logsManage.index'), width: 70, align: 'center' },
     { prop: 'app_name', label: t('logsManage.appName') || '应用名称', minWidth: 120 },
-    { prop: 'token', label: t('logsManage.token'), minWidth: 150, showOverflowTooltip: true },
-    { prop: 'platform', label: t('logsManage.platform'), width: 100 },
+    {
+      prop: 'token',
+      label: t('logsManage.token'),
+      minWidth: 140,
+      showOverflowTooltip: true,
+      useSlot: true,
+      slotName: 'token'
+    },
     {
       prop: 'version',
       label: t('logsManage.version'),
-      width: 100,
+      width: 90,
       useSlot: true,
       slotName: 'version'
     },
     {
+      prop: 'platform',
+      label: t('logsManage.platform'),
+      width: 90,
+      align: 'center',
+      useSlot: true,
+      slotName: 'platform'
+    },
+    {
       prop: 'user_uuid',
       label: t('logsManage.userUuid'),
-      minWidth: 150,
-      showOverflowTooltip: true
+      minWidth: 140,
+      showOverflowTooltip: true,
+      useSlot: true,
+      slotName: 'user_uuid'
     },
-    { prop: 'ip', label: t('logsManage.ip'), width: 130 },
+    {
+      prop: 'ip',
+      label: t('logsManage.ip'),
+      width: 120,
+      useSlot: true,
+      slotName: 'ip'
+    },
     {
       prop: 'ip_location',
       label: t('logsManage.ipLocation'),
       minWidth: 130,
       showOverflowTooltip: true
     },
-    { prop: 'api_path', label: t('logsManage.apiPath'), minWidth: 180 },
+    { prop: 'api_path', label: t('logsManage.apiPath'), minWidth: 160 },
     {
       prop: 'created_at',
       label: t('logsManage.createdAt'),
-      width: 180,
+      width: 160,
       useSlot: true,
       slotName: 'createdAt'
     },
@@ -191,6 +243,24 @@
     if (!timeStr) return '-'
     const d = new Date(timeStr)
     return d.toLocaleString()
+  }
+
+  const getPlatformIcon = (platform: string) => {
+    const p = (platform || '').toLowerCase()
+    if (p.includes('android')) return 'ri:android-fill'
+    if (p.includes('ios') || p.includes('mac') || p.includes('apple')) return 'ri:apple-fill'
+    if (p.includes('win')) return 'ri:windows-fill'
+    if (p.includes('linux') || p.includes('ubuntu')) return 'ri:ubuntu-fill'
+    return 'ri:computer-line'
+  }
+
+  const getPlatformTagType = (platform: string) => {
+    const p = (platform || '').toLowerCase()
+    if (p.includes('android')) return 'success'
+    if (p.includes('ios') || p.includes('mac') || p.includes('apple')) return 'primary'
+    if (p.includes('win')) return 'info'
+    if (p.includes('linux')) return 'warning'
+    return 'info'
   }
 </script>
 

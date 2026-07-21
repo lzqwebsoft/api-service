@@ -7,6 +7,7 @@ type UserFeedback struct {
 	ID         int       `json:"id"`
 	TokenID    int       `json:"token_id"`
 	AppID      string    `json:"app_id,omitempty"`
+	AppName    string    `json:"app_name,omitempty"`
 	Token      string    `json:"token,omitempty"`
 	Platform   string    `json:"platform,omitempty"`
 	Version    string    `json:"version,omitempty"`

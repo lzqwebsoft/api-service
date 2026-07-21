@@ -512,7 +512,8 @@
       "title": "应用管理",
       "apps": "应用与Token",
       "blacklist": "Token 黑名单",
-      "logs": "访问记录"
+      "logs": "访问记录",
+      "feedback": "用户反馈"
     },
     "calendar": {
       "title": "节假日管理",
@@ -547,5 +548,34 @@
     "zebra": "斑马纹",
     "border": "边框",
     "headerBackground": "表头背景"
+  },
+  "feedbackManage": {
+    "title": "用户意见反馈",
+    "subtitle": "展示客户端用户提交的意见与建议反馈，支持标记处理状态及详情管理。",
+    "listTitle": "反馈列表",
+    "index": "序号",
+    "appName": "应用名称",
+    "version": "版本",
+    "platform": "平台",
+    "userUuid": "用户 UUID",
+    "content": "反馈内容",
+    "contact": "联系方式",
+    "ip": "IP 地址",
+    "ipLocation": "IP 归属地",
+    "status": "处理状态",
+    "pending": "待处理",
+    "processed": "已处理",
+    "markProcessed": "标记已处理",
+    "markPending": "标记待处理",
+    "createdAt": "提交时间",
+    "operations": "操作",
+    "detail": "详情",
+    "delete": "删除",
+    "deleteConfirm": "确定要删除该条意见反馈记录吗？",
+    "detailTitle": "反馈详情",
+    "successUpdateStatus": "状态更新成功",
+    "errorUpdateStatus": "状态更新失败",
+    "successDelete": "反馈记录已删除",
+    "errorDelete": "删除失败"
   }
 }

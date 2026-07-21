@@ -512,7 +512,8 @@
       "title": "App Management",
       "apps": "Apps & Tokens",
       "blacklist": "Token Blacklist",
-      "logs": "Access Logs"
+      "logs": "Access Logs",
+      "feedback": "User Feedback"
     },
     "calendar": {
       "title": "Calendar Settings",
@@ -547,5 +548,34 @@
     "zebra": "Zebra",
     "border": "Border",
     "headerBackground": "Header BG"
+  },
+  "feedbackManage": {
+    "title": "User Feedback",
+    "subtitle": "View and manage user feedback and suggestions submitted from client apps.",
+    "listTitle": "Feedback List",
+    "index": "No.",
+    "appName": "App Name",
+    "version": "Version",
+    "platform": "Platform",
+    "userUuid": "User UUID",
+    "content": "Content",
+    "contact": "Contact",
+    "ip": "IP Address",
+    "ipLocation": "IP Location",
+    "status": "Status",
+    "pending": "Pending",
+    "processed": "Processed",
+    "markProcessed": "Mark as Processed",
+    "markPending": "Mark as Pending",
+    "createdAt": "Submitted At",
+    "operations": "Operations",
+    "detail": "Details",
+    "delete": "Delete",
+    "deleteConfirm": "Are you sure you want to delete this feedback entry?",
+    "detailTitle": "Feedback Details",
+    "successUpdateStatus": "Status updated successfully",
+    "errorUpdateStatus": "Failed to update status",
+    "successDelete": "Feedback entry deleted",
+    "errorDelete": "Failed to delete feedback"
   }
 }

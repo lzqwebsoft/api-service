@@ -21,7 +21,7 @@ import (
 	logger "api-service/utils"
 )
 
-//go:embed web/* public/*
+//go:embed public/*
 var embeddedFS embed.FS
 
 func main() {
@@ -70,7 +70,7 @@ func main() {
 	feedbackService := service.NewFeedbackService(feedbackRepo)
 
 	// 5. Initialize handlers (Controller Layer)
-	adminBase := admin.NewBaseHandler(embeddedFS)
+	adminBase := admin.NewBaseHandler()
 	apiBase := api.NewBaseHandler()
 	adminSessionAuth := middleware.AdminSessionMiddleware(adminService)
 	clientAuth := middleware.AuthMiddleware(tokenService)
@@ -88,6 +88,7 @@ func main() {
 		admin.NewHolidayHandler(adminBase, holidayService, adminSessionAuth),
 		admin.NewMenuHandler(adminBase, menuService, adminSessionAuth),
 		admin.NewRoleHandler(adminBase, roleService, adminSessionAuth),
+		admin.NewFeedbackHandler(adminBase, feedbackService, adminSessionAuth),
 		// 开放API接口
 		api.NewResourceHandler(apiBase, calendarService),
 		api.NewCalendarHandler(apiBase, calendarService, holidayService, clientAuth),

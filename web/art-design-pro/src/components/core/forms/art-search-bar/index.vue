@@ -251,7 +251,7 @@
 
   const emit = defineEmits<SearchBarEmits>()
 
-  const modelValue = defineModel<Record<string, any>>({ default: {} })
+  const modelValue = defineModel<Record<string, any>>({ default: () => ({}) })
   const initialModelValue = ref<Record<string, any>>({})
 
   // 保存组件初始化时的表单快照，用于 reset 时恢复默认筛选条件。
@@ -277,7 +277,7 @@
     return deepClone(toRaw(value)) as Record<string, any>
   }
 
-  initialModelValue.value = cloneModelValue(modelValue.value)
+  initialModelValue.value = cloneModelValue(modelValue.value as Record<string, any>)
 
   /**
    * 是否展开状态
@@ -328,17 +328,17 @@
     return value === '' ? undefined : value
   }
 
-  const getFieldValue = (key: string) => modelValue.value[key]
+  const getFieldValue = (key: string) => (modelValue.value as Record<string, any>)[key]
 
   const setFieldValue = (key: string, value: unknown) => {
     const normalizedValue = normalizeFieldValue(value)
 
     if (normalizedValue === undefined) {
-      delete modelValue.value[key]
+      delete (modelValue.value as Record<string, any>)[key]
       return
     }
 
-    modelValue.value[key] = normalizedValue
+    ;(modelValue.value as Record<string, any>)[key] = normalizedValue
   }
 
   const isRichTextEmpty = (value: string) => {
@@ -406,7 +406,8 @@
   }
 
   const getSanitizedOutput = () => {
-    return (sanitizeOutputValue(cloneModelValue(modelValue.value)) || {}) as Record<string, any>
+    return (sanitizeOutputValue(cloneModelValue(modelValue.value as Record<string, any>)) ||
+      {}) as Record<string, any>
   }
 
   // 组件
@@ -476,10 +477,11 @@
     formInstance.value?.resetFields()
 
     // 恢复初始表单值，保留默认搜索条件而不是简单清空。
-    Object.keys(modelValue.value).forEach((key) => {
-      delete modelValue.value[key]
+    const currentModel = modelValue.value as Record<string, any>
+    Object.keys(currentModel).forEach((key) => {
+      delete currentModel[key]
     })
-    Object.assign(modelValue.value, cloneModelValue(initialModelValue.value))
+    Object.assign(currentModel, cloneModelValue(initialModelValue.value))
 
     // 触发 reset 事件
     emit('reset')

@@ -93,3 +93,27 @@ export function fetchAddLogBlacklist(data: { token_id: number; token: string; us
     data
   })
 }
+
+// List user feedback
+export function fetchGetFeedback(params?: { current?: number; size?: number }) {
+  return request.get<{ list: any[]; total: number }>({
+    url: '/admin/feedback',
+    params
+  })
+}
+
+// Update user feedback processing status
+export function fetchUpdateFeedbackStatus(data: { id: number; status: number }) {
+  return request.post({
+    url: '/admin/feedback/status',
+    data
+  })
+}
+
+// Delete user feedback record
+export function fetchDeleteFeedback(data: { id: number }) {
+  return request.post({
+    url: '/admin/feedback/delete',
+    data
+  })
+}
