@@ -48,27 +48,27 @@ func (h *MenuHandler) InitRoutes() []handler.Route {
 func (h *MenuHandler) handleGetMenuList(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetAdminUserID(r.Context())
 	if userID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 401, "未授权的访问", nil)
+		h.SendError(w, r, 401, "未授权的访问")
 		return
 	}
 
 	menuTree, err := h.menuService.GetMenuTreeByUserID(r.Context(), userID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load menus: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load menus: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", menuTree)
+	h.SendSuccess(w, r, "获取成功", menuTree)
 }
 
 // handleGetAllMenus returns the full menu tree for management
 func (h *MenuHandler) handleGetAllMenus(w http.ResponseWriter, r *http.Request) {
 	menuTree, err := h.menuService.GetAllMenuTree(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "获取菜单失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "获取菜单失败: "+err.Error())
 		return
 	}
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", menuTree)
+	h.SendSuccess(w, r, "获取成功", menuTree)
 }
 
 // handleCreateMenu adds a new menu
@@ -88,11 +88,11 @@ func (h *MenuHandler) handleCreateMenu(w http.ResponseWriter, r *http.Request) {
 		SortOrder  int    `json:"sortOrder"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 	if req.Name == "" || req.Title == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "菜单名称和标题不能为空", nil)
+		h.SendError(w, r, 400, "菜单名称和标题不能为空")
 		return
 	}
 
@@ -113,11 +113,11 @@ func (h *MenuHandler) handleCreateMenu(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.menuService.CreateMenu(r.Context(), menu)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "新增菜单失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "新增菜单失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "新增成功", map[string]interface{}{"id": id})
+	h.SendSuccess(w, r, "新增成功", map[string]interface{}{"id": id})
 }
 
 // handleUpdateMenu updates an existing menu
@@ -138,11 +138,11 @@ func (h *MenuHandler) handleUpdateMenu(w http.ResponseWriter, r *http.Request) {
 		SortOrder  int    `json:"sortOrder"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "菜单ID不能为空", nil)
+		h.SendError(w, r, 400, "菜单ID不能为空")
 		return
 	}
 
@@ -164,11 +164,11 @@ func (h *MenuHandler) handleUpdateMenu(w http.ResponseWriter, r *http.Request) {
 
 	err := h.menuService.UpdateMenu(r.Context(), menu)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新菜单失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新菜单失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "更新成功", nil)
+	h.SendSuccess(w, r, "更新成功", nil)
 }
 
 // handleDeleteMenu deletes a menu by ID
@@ -177,21 +177,21 @@ func (h *MenuHandler) handleDeleteMenu(w http.ResponseWriter, r *http.Request) {
 		ID int `json:"id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "菜单ID不能为空", nil)
+		h.SendError(w, r, 400, "菜单ID不能为空")
 		return
 	}
 
 	err := h.menuService.DeleteMenu(r.Context(), req.ID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除菜单失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除菜单失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "删除成功", nil)
+	h.SendSuccess(w, r, "删除成功", nil)
 }
 
 // handleCreateMenuAuth adds a new button permission
@@ -202,11 +202,11 @@ func (h *MenuHandler) handleCreateMenuAuth(w http.ResponseWriter, r *http.Reques
 		AuthMark string `json:"authMark"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 	if req.MenuID == 0 || req.Title == "" || req.AuthMark == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "菜单ID、权限名称和权限标识不能为空", nil)
+		h.SendError(w, r, 400, "菜单ID、权限名称和权限标识不能为空")
 		return
 	}
 
@@ -218,11 +218,11 @@ func (h *MenuHandler) handleCreateMenuAuth(w http.ResponseWriter, r *http.Reques
 
 	id, err := h.menuService.CreateMenuAuth(r.Context(), auth)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "新增权限失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "新增权限失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "新增成功", map[string]interface{}{"id": id})
+	h.SendSuccess(w, r, "新增成功", map[string]interface{}{"id": id})
 }
 
 // handleUpdateMenuAuth updates an existing button permission
@@ -234,11 +234,11 @@ func (h *MenuHandler) handleUpdateMenuAuth(w http.ResponseWriter, r *http.Reques
 		AuthMark string `json:"authMark"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "权限ID不能为空", nil)
+		h.SendError(w, r, 400, "权限ID不能为空")
 		return
 	}
 
@@ -251,11 +251,11 @@ func (h *MenuHandler) handleUpdateMenuAuth(w http.ResponseWriter, r *http.Reques
 
 	err := h.menuService.UpdateMenuAuth(r.Context(), auth)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新权限失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新权限失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "更新成功", nil)
+	h.SendSuccess(w, r, "更新成功", nil)
 }
 
 // handleDeleteMenuAuth deletes a button permission by ID
@@ -264,19 +264,19 @@ func (h *MenuHandler) handleDeleteMenuAuth(w http.ResponseWriter, r *http.Reques
 		ID int `json:"id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "权限ID不能为空", nil)
+		h.SendError(w, r, 400, "权限ID不能为空")
 		return
 	}
 
 	err := h.menuService.DeleteMenuAuth(r.Context(), req.ID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除权限失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除权限失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "删除成功", nil)
+	h.SendSuccess(w, r, "删除成功", nil)
 }

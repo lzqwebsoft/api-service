@@ -77,7 +77,7 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 
 	exceptions, total, stats, err := h.calendarService.ListExceptionsPaged(r.Context(), region, isWorkday, year, limit, offset)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load calendar exceptions: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load calendar exceptions: "+err.Error())
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *CalendarHandler) handleCalendarList(w http.ResponseWriter, r *http.Requ
 		"years":        stats.Years,
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
+	h.SendSuccess(w, r, "获取成功", res)
 }
 
 // handleCalendarAdd processes adding an exception entry
@@ -114,7 +114,7 @@ func (h *CalendarHandler) handleCalendarAdd(w http.ResponseWriter, r *http.Reque
 	}
 
 	if req.Date == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "日期不能为空", nil)
+		h.SendError(w, r, 400, "日期不能为空")
 		return
 	}
 
@@ -127,11 +127,11 @@ func (h *CalendarHandler) handleCalendarAdd(w http.ResponseWriter, r *http.Reque
 
 	err := h.calendarService.AddException(r.Context(), entry)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "添加例外日期失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "添加例外日期失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "例外日期添加成功", nil)
+	h.SendSuccess(w, r, "例外日期添加成功", nil)
 }
 
 // handleCalendarUpdate processes updating an exception entry
@@ -155,7 +155,7 @@ func (h *CalendarHandler) handleCalendarUpdate(w http.ResponseWriter, r *http.Re
 	}
 
 	if req.Date == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "日期不能为空", nil)
+		h.SendError(w, r, 400, "日期不能为空")
 		return
 	}
 
@@ -168,11 +168,11 @@ func (h *CalendarHandler) handleCalendarUpdate(w http.ResponseWriter, r *http.Re
 
 	err := h.calendarService.UpdateException(r.Context(), entry)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新例外日期失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新例外日期失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "例外日期更新成功", nil)
+	h.SendSuccess(w, r, "例外日期更新成功", nil)
 }
 
 // handleCalendarDelete processes deleting an exception entry
@@ -192,15 +192,15 @@ func (h *CalendarHandler) handleCalendarDelete(w http.ResponseWriter, r *http.Re
 	}
 
 	if req.Date == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "日期不能为空", nil)
+		h.SendError(w, r, 400, "日期不能为空")
 		return
 	}
 
 	err := h.calendarService.DeleteException(r.Context(), req.Date, req.Region)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除例外日期失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除例外日期失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "例外日期已成功删除", nil)
+	h.SendSuccess(w, r, "例外日期已成功删除", nil)
 }

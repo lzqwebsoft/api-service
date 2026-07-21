@@ -43,11 +43,11 @@ func (h *BlacklistHandler) InitRoutes() []handler.Route {
 func (h *BlacklistHandler) handleBlacklist(w http.ResponseWriter, r *http.Request) {
 	blacklist, err := h.tokenService.ListBlacklist(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load blacklist: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load blacklist: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", blacklist)
+	h.SendSuccess(w, r, "获取成功", blacklist)
 }
 
 // handleAddBlacklist processes manually adding an entry to the blacklist
@@ -66,7 +66,7 @@ func (h *BlacklistHandler) handleAddBlacklist(w http.ResponseWriter, r *http.Req
 	}
 
 	if (req.TokenID == 0 && req.Token == "") || req.UserUUID == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "Token 或 Token ID 与 User UUID 均为必填", nil)
+		h.SendError(w, r, 400, "Token 或 Token ID 与 User UUID 均为必填")
 		return
 	}
 
@@ -78,11 +78,11 @@ func (h *BlacklistHandler) handleAddBlacklist(w http.ResponseWriter, r *http.Req
 
 	err := h.tokenService.AddToBlacklist(r.Context(), entry)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "添加黑名单失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "添加黑名单失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "黑名单记录添加成功", nil)
+	h.SendSuccess(w, r, "黑名单记录添加成功", nil)
 }
 
 // handleDeleteBlacklist processes removing an entry from the blacklist
@@ -98,15 +98,15 @@ func (h *BlacklistHandler) handleDeleteBlacklist(w http.ResponseWriter, r *http.
 	}
 
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "无效 ID 格式", nil)
+		h.SendError(w, r, 400, "无效 ID 格式")
 		return
 	}
 
 	err := h.tokenService.RemoveFromBlacklist(r.Context(), req.ID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "移除黑名单失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "移除黑名单失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "黑名单记录已成功移除", nil)
+	h.SendSuccess(w, r, "黑名单记录已成功移除", nil)
 }

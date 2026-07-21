@@ -61,13 +61,13 @@ func (h *HolidayHandler) handleHolidayList(w http.ResponseWriter, r *http.Reques
 
 	holidays, total, err := h.holidayService.ListHolidaysPaged(r.Context(), name, holidayType, regions, limit, offset)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load holidays: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load holidays: "+err.Error())
 		return
 	}
 
 	stats, err := h.holidayService.GetStats(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load holiday stats: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load holiday stats: "+err.Error())
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *HolidayHandler) handleHolidayList(w http.ResponseWriter, r *http.Reques
 		"industryCount": stats["industry"],
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
+	h.SendSuccess(w, r, "获取成功", res)
 }
 
 func (h *HolidayHandler) handleHolidayAdd(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +107,7 @@ func (h *HolidayHandler) handleHolidayAdd(w http.ResponseWriter, r *http.Request
 	}
 
 	if req.Name == "" || req.Type == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "节日名称和类型为必填项", nil)
+		h.SendError(w, r, 400, "节日名称和类型为必填项")
 		return
 	}
 
@@ -124,11 +124,11 @@ func (h *HolidayHandler) handleHolidayAdd(w http.ResponseWriter, r *http.Request
 
 	err := h.holidayService.AddHoliday(r.Context(), entry)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "添加节日失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "添加节日失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "节日添加成功", nil)
+	h.SendSuccess(w, r, "节日添加成功", nil)
 }
 
 func (h *HolidayHandler) handleHolidayUpdate(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +157,7 @@ func (h *HolidayHandler) handleHolidayUpdate(w http.ResponseWriter, r *http.Requ
 	}
 
 	if req.ID == 0 || req.Name == "" || req.Type == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数错误", nil)
+		h.SendError(w, r, 400, "参数错误")
 		return
 	}
 
@@ -175,11 +175,11 @@ func (h *HolidayHandler) handleHolidayUpdate(w http.ResponseWriter, r *http.Requ
 
 	err := h.holidayService.UpdateHoliday(r.Context(), entry)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新节日失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新节日失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "节日更新成功", nil)
+	h.SendSuccess(w, r, "节日更新成功", nil)
 }
 
 func (h *HolidayHandler) handleHolidayDelete(w http.ResponseWriter, r *http.Request) {
@@ -194,15 +194,15 @@ func (h *HolidayHandler) handleHolidayDelete(w http.ResponseWriter, r *http.Requ
 	}
 
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "无效 ID 格式", nil)
+		h.SendError(w, r, 400, "无效 ID 格式")
 		return
 	}
 
 	err := h.holidayService.DeleteHoliday(r.Context(), req.ID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除节日失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除节日失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "节日已成功删除", nil)
+	h.SendSuccess(w, r, "节日已成功删除", nil)
 }

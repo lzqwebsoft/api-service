@@ -68,7 +68,7 @@ func (h *UserHandler) handleUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, total, err := h.adminService.ListUsersFiltered(r.Context(), userName, userGender, userPhone, userEmail, status, page, size)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load users: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load users: "+err.Error())
 		return
 	}
 
@@ -83,7 +83,7 @@ func (h *UserHandler) handleUsers(w http.ResponseWriter, r *http.Request) {
 		"size":    size,
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
+	h.SendSuccess(w, r, "获取成功", res)
 }
 
 func parseGender(val interface{}) int {
@@ -141,7 +141,7 @@ func (h *UserHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		UserRoles  []string    `json:"userRoles"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
@@ -171,7 +171,7 @@ func (h *UserHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if username == "" || req.Password == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "用户名和密码不能为空", nil)
+		h.SendError(w, r, 400, "用户名和密码不能为空")
 		return
 	}
 
@@ -186,11 +186,11 @@ func (h *UserHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.adminService.CreateUserFull(r.Context(), user, roles)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "创建管理员失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "创建管理员失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "管理员账号新增成功", nil)
+	h.SendSuccess(w, r, "管理员账号新增成功", nil)
 }
 
 // handleUpdateUser modifies existing admin user
@@ -212,12 +212,12 @@ func (h *UserHandler) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		UserRoles  []string    `json:"userRoles"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "用户ID不能为空", nil)
+		h.SendError(w, r, 400, "用户ID不能为空")
 		return
 	}
 
@@ -253,11 +253,11 @@ func (h *UserHandler) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	err := h.adminService.UpdateUserFull(r.Context(), user, roles)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新用户信息失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新用户信息失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "更新成功", nil)
+	h.SendSuccess(w, r, "更新成功", nil)
 }
 
 // handleDeleteUser deletes a user
@@ -266,46 +266,46 @@ func (h *UserHandler) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		ID int `json:"id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
 	if req.ID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "用户ID不能为空", nil)
+		h.SendError(w, r, 400, "用户ID不能为空")
 		return
 	}
 
 	err := h.adminService.DeleteUser(r.Context(), req.ID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除用户失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除用户失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "删除成功", nil)
+	h.SendSuccess(w, r, "删除成功", nil)
 }
 
 // handleGetUserProfile gets profile for current logged-in user
 func (h *UserHandler) handleGetUserProfile(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetAdminUserID(r.Context())
 	if userID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 401, "未授权的访问", nil)
+		h.SendError(w, r, 401, "未授权的访问")
 		return
 	}
 
 	user, err := h.adminService.GetUserByID(r.Context(), userID)
 	if err != nil || user == nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "获取个人资料失败", nil)
+		h.SendError(w, r, 500, "获取个人资料失败")
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", user)
+	h.SendSuccess(w, r, "获取成功", user)
 }
 
 // handleUpdateUserProfile updates profile for current logged-in user
 func (h *UserHandler) handleUpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetAdminUserID(r.Context())
 	if userID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 401, "未授权的访问", nil)
+		h.SendError(w, r, 401, "未授权的访问")
 		return
 	}
 
@@ -323,7 +323,7 @@ func (h *UserHandler) handleUpdateUserProfile(w http.ResponseWriter, r *http.Req
 		Description string      `json:"description"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
@@ -360,18 +360,18 @@ func (h *UserHandler) handleUpdateUserProfile(w http.ResponseWriter, r *http.Req
 
 	err := h.adminService.UpdateUserProfile(r.Context(), user)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "保存个人资料失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "保存个人资料失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "保存成功", nil)
+	h.SendSuccess(w, r, "保存成功", nil)
 }
 
 // handleChangeUserPassword changes password for current logged-in user
 func (h *UserHandler) handleChangeUserPassword(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetAdminUserID(r.Context())
 	if userID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 401, "未授权的访问", nil)
+		h.SendError(w, r, 401, "未授权的访问")
 		return
 	}
 
@@ -381,25 +381,25 @@ func (h *UserHandler) handleChangeUserPassword(w http.ResponseWriter, r *http.Re
 		ConfirmPassword string `json:"confirmPassword"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
 	if req.NewPassword == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "新密码不能为空", nil)
+		h.SendError(w, r, 400, "新密码不能为空")
 		return
 	}
 
 	if req.ConfirmPassword != "" && req.NewPassword != req.ConfirmPassword {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "两次输入的新密码不一致", nil)
+		h.SendError(w, r, 400, "两次输入的新密码不一致")
 		return
 	}
 
 	err := h.adminService.ChangeUserPassword(r.Context(), userID, req.Password, req.NewPassword)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, err.Error(), nil)
+		h.SendError(w, r, 400, err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "密码修改成功", nil)
+	h.SendSuccess(w, r, "密码修改成功", nil)
 }

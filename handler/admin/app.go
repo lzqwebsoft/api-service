@@ -45,13 +45,13 @@ func (h *AppHandler) InitRoutes() []handler.Route {
 func (h *AppHandler) handleApps(w http.ResponseWriter, r *http.Request) {
 	apps, err := h.appService.ListApps(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load apps: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load apps: "+err.Error())
 		return
 	}
 
 	tokens, err := h.tokenService.ListTokens(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load tokens: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load tokens: "+err.Error())
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *AppHandler) handleApps(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", appVMs)
+	h.SendSuccess(w, r, "获取成功", appVMs)
 }
 
 // handleRegisterApp handles registering a new application version via JSON or Form
@@ -91,7 +91,7 @@ func (h *AppHandler) handleRegisterApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.AppID == "" || req.Name == "" || req.Version == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "所有字段均必填", nil)
+		h.SendError(w, r, 400, "所有字段均必填")
 		return
 	}
 
@@ -103,11 +103,11 @@ func (h *AppHandler) handleRegisterApp(w http.ResponseWriter, r *http.Request) {
 
 	err := h.appService.RegisterApp(r.Context(), app)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "注册失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "注册失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "新应用版本注册成功", nil)
+	h.SendSuccess(w, r, "新应用版本注册成功", nil)
 }
 
 // handleToggleApp toggles active/inactive state of a specific application version
@@ -125,13 +125,13 @@ func (h *AppHandler) handleToggleApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.AppID == "" || req.Version == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 app_id 或 version", nil)
+		h.SendError(w, r, 400, "缺失 app_id 或 version")
 		return
 	}
 
 	err := h.appService.UpdateAppStatus(r.Context(), req.AppID, req.Version, req.IsActive)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新状态失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新状态失败: "+err.Error())
 		return
 	}
 
@@ -139,7 +139,7 @@ func (h *AppHandler) handleToggleApp(w http.ResponseWriter, r *http.Request) {
 	if req.IsActive {
 		msg = "应用版本已启用"
 	}
-	handler.SendAdminJSON(w, http.StatusOK, 200, msg, nil)
+	h.SendSuccess(w, r, msg, nil)
 }
 
 // handleDeleteApp processes deleting an application version
@@ -155,15 +155,15 @@ func (h *AppHandler) handleDeleteApp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.AppID == "" || req.Version == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 app_id 或 version", nil)
+		h.SendError(w, r, 400, "缺失 app_id 或 version")
 		return
 	}
 
 	err := h.appService.DeleteApp(r.Context(), req.AppID, req.Version)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除应用失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除应用失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "应用已成功删除", nil)
+	h.SendSuccess(w, r, "应用已成功删除", nil)
 }

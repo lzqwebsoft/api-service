@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+
+	"api-service/utils"
 )
 
 // APIResponse represents the standard structure for all API JSON payloads
@@ -26,6 +28,8 @@ func JSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 
 // ErrorResponse writes a failed JSON response with an error message to the response writer
 func ErrorResponse(w http.ResponseWriter, statusCode int, errMsg string) {
+	utils.Errorf("[API Error] Status: %d, Message: %s", statusCode, errMsg)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 

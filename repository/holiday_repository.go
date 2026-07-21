@@ -171,9 +171,9 @@ func (r *mysqlHolidayRepository) ListPaged(ctx context.Context, name string, hol
 func (r *mysqlHolidayRepository) GetStats(ctx context.Context) (map[string]int, error) {
 	query := `SELECT 
 		COUNT(*) as total,
-		SUM(CASE WHEN type = 'solar' THEN 1 ELSE 0 END) as solar,
-		SUM(CASE WHEN type = 'weekday' THEN 1 ELSE 0 END) as weekday,
-		SUM(CASE WHEN type = 'industry' THEN 1 ELSE 0 END) as industry
+		IFNULL(SUM(CASE WHEN type = 'solar' THEN 1 ELSE 0 END), 0) as solar,
+		IFNULL(SUM(CASE WHEN type = 'weekday' THEN 1 ELSE 0 END), 0) as weekday,
+		IFNULL(SUM(CASE WHEN type = 'industry' THEN 1 ELSE 0 END), 0) as industry
 	FROM holiday`
 	var total, solar, weekday, industry int
 	err := r.db.QueryRowContext(ctx, query).Scan(&total, &solar, &weekday, &industry)

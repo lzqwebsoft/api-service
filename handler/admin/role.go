@@ -63,7 +63,7 @@ func (h *RoleHandler) handleListRoles(w http.ResponseWriter, r *http.Request) {
 
 	roles, total, err := h.roleService.ListRoles(r.Context(), roleName, roleCode, page, size)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "获取角色列表失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "获取角色列表失败: "+err.Error())
 		return
 	}
 
@@ -78,7 +78,7 @@ func (h *RoleHandler) handleListRoles(w http.ResponseWriter, r *http.Request) {
 		"size":    size,
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", resp)
+	h.SendSuccess(w, r, "获取成功", resp)
 }
 
 // handleCreateRole handles role creation
@@ -90,12 +90,12 @@ func (h *RoleHandler) handleCreateRole(w http.ResponseWriter, r *http.Request) {
 		Enabled     bool   `json:"enabled"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
 	if req.RoleName == "" || req.RoleCode == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "角色名称和角色编码不能为空", nil)
+		h.SendError(w, r, 400, "角色名称和角色编码不能为空")
 		return
 	}
 
@@ -108,11 +108,11 @@ func (h *RoleHandler) handleCreateRole(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.roleService.CreateRole(r.Context(), role)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "新增角色失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "新增角色失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "新增成功", map[string]interface{}{"roleId": id})
+	h.SendSuccess(w, r, "新增成功", map[string]interface{}{"roleId": id})
 }
 
 // handleUpdateRole handles role update
@@ -125,12 +125,12 @@ func (h *RoleHandler) handleUpdateRole(w http.ResponseWriter, r *http.Request) {
 		Enabled     bool   `json:"enabled"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
 	if req.RoleID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "角色ID不能为空", nil)
+		h.SendError(w, r, 400, "角色ID不能为空")
 		return
 	}
 
@@ -144,11 +144,11 @@ func (h *RoleHandler) handleUpdateRole(w http.ResponseWriter, r *http.Request) {
 
 	err := h.roleService.UpdateRole(r.Context(), role)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新角色失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新角色失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "更新成功", nil)
+	h.SendSuccess(w, r, "更新成功", nil)
 }
 
 // handleDeleteRole handles role deletion
@@ -157,22 +157,22 @@ func (h *RoleHandler) handleDeleteRole(w http.ResponseWriter, r *http.Request) {
 		RoleID int `json:"roleId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
 	if req.RoleID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "角色ID不能为空", nil)
+		h.SendError(w, r, 400, "角色ID不能为空")
 		return
 	}
 
 	err := h.roleService.DeleteRole(r.Context(), req.RoleID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除角色失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除角色失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "删除成功", nil)
+	h.SendSuccess(w, r, "删除成功", nil)
 }
 
 // handleGetRoleMenuIDs gets menu IDs assigned to a role
@@ -180,13 +180,13 @@ func (h *RoleHandler) handleGetRoleMenuIDs(w http.ResponseWriter, r *http.Reques
 	roleIDStr := r.URL.Query().Get("roleId")
 	roleID, _ := strconv.Atoi(roleIDStr)
 	if roleID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "角色ID不能为空", nil)
+		h.SendError(w, r, 400, "角色ID不能为空")
 		return
 	}
 
 	menuIDs, err := h.roleService.GetRoleMenuIDs(r.Context(), roleID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "获取角色菜单权限失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "获取角色菜单权限失败: "+err.Error())
 		return
 	}
 
@@ -194,7 +194,7 @@ func (h *RoleHandler) handleGetRoleMenuIDs(w http.ResponseWriter, r *http.Reques
 		menuIDs = []int{}
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", menuIDs)
+	h.SendSuccess(w, r, "获取成功", menuIDs)
 }
 
 // handleSetRoleMenus sets menu IDs for a role
@@ -204,20 +204,20 @@ func (h *RoleHandler) handleSetRoleMenus(w http.ResponseWriter, r *http.Request)
 		MenuIDs []int `json:"menuIds"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "参数解析失败", nil)
+		h.SendError(w, r, 400, "参数解析失败")
 		return
 	}
 
 	if req.RoleID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "角色ID不能为空", nil)
+		h.SendError(w, r, 400, "角色ID不能为空")
 		return
 	}
 
 	err := h.roleService.SetRoleMenus(r.Context(), req.RoleID, req.MenuIDs)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "设置角色菜单权限失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "设置角色菜单权限失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "设置成功", nil)
+	h.SendSuccess(w, r, "设置成功", nil)
 }

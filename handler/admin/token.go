@@ -47,22 +47,22 @@ func (h *TokenHandler) handleTokens(w http.ResponseWriter, r *http.Request) {
 	if appID == "" || version == "" {
 		tokens, err := h.tokenService.ListTokens(r.Context())
 		if err != nil {
-			handler.SendAdminJSON(w, http.StatusOK, 500, "加载 Token 失败: "+err.Error(), nil)
+			h.SendError(w, r, 500, "加载 Token 失败: "+err.Error())
 			return
 		}
-		handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", tokens)
+		h.SendSuccess(w, r, "获取成功", tokens)
 		return
 	}
 
 	app, err := h.appService.GetApp(r.Context(), appID, version)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 404, "应用未找到: "+err.Error(), nil)
+		h.SendError(w, r, 404, "应用未找到: "+err.Error())
 		return
 	}
 
 	tokens, err := h.tokenService.ListTokensByApp(r.Context(), appID, version)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "加载 Token 失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "加载 Token 失败: "+err.Error())
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *TokenHandler) handleTokens(w http.ResponseWriter, r *http.Request) {
 		"tokens": tokens,
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
+	h.SendSuccess(w, r, "获取成功", res)
 }
 
 // handleGenerateToken issues a new token for an app version
@@ -89,17 +89,17 @@ func (h *TokenHandler) handleGenerateToken(w http.ResponseWriter, r *http.Reques
 	}
 
 	if req.Platform == "" || req.AppID == "" || req.Version == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "生成 Token 失败: 必须指定平台/应用/版本", nil)
+		h.SendError(w, r, 400, "生成 Token 失败: 必须指定平台/应用/版本")
 		return
 	}
 
 	token, err := h.tokenService.GenerateToken(r.Context(), req.AppID, req.Version, req.Platform)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "生成 Token 失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "生成 Token 失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "Token 生成成功", token)
+	h.SendSuccess(w, r, "Token 生成成功", token)
 }
 
 // handleRevokeToken invalidates a token
@@ -113,15 +113,15 @@ func (h *TokenHandler) handleRevokeToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	if req.Token == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 token", nil)
+		h.SendError(w, r, 400, "缺失 token")
 		return
 	}
 
 	err := h.tokenService.RevokeToken(r.Context(), req.Token)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "撤销失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "撤销失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "Token 已成功撤销", nil)
+	h.SendSuccess(w, r, "Token 已成功撤销", nil)
 }

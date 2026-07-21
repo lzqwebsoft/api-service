@@ -129,7 +129,6 @@ CREATE TABLE IF NOT EXISTS `calendar_exception`  (
   `date` date NOT NULL COMMENT '日期',
   `region` varchar(50) NOT NULL DEFAULT '中国大陆' COMMENT '地区',
   `is_workday` tinyint(1) NOT NULL COMMENT '1=上班，0=休息',
-  `holiday_name` varchar(100) DEFAULT NULL COMMENT '特定节假日名称',
   `description` varchar(100) DEFAULT NULL COMMENT '事由，如“春节放假”或“劳动节调休上班”',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`date`,`region`),

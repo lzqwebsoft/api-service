@@ -78,11 +78,11 @@ func (h *AuthHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	loginResult, err := h.adminService.Login(r.Context(), username, password, captchaID, x, y)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, err.Error(), nil)
+		h.SendError(w, r, 400, err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "登录成功", loginResult)
+	h.SendSuccess(w, r, "登录成功", loginResult)
 }
 
 // handleLogout clears the session and returns JSON success
@@ -99,20 +99,20 @@ func (h *AuthHandler) handleLogout(w http.ResponseWriter, r *http.Request) {
 		_ = h.adminService.Logout(r.Context(), token)
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "登出成功", nil)
+	h.SendSuccess(w, r, "登出成功", nil)
 }
 
 // handleUserInfo returns information of the logged-in administrator
 func (h *AuthHandler) handleUserInfo(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.GetAdminUserID(r.Context())
 	if userID == 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 401, "未授权的访问", nil)
+		h.SendError(w, r, 401, "未授权的访问")
 		return
 	}
 
 	user, err := h.adminService.GetUserByID(r.Context(), userID)
 	if err != nil || user == nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "用户不存在", nil)
+		h.SendError(w, r, 500, "用户不存在")
 		return
 	}
 
@@ -139,7 +139,7 @@ func (h *AuthHandler) handleUserInfo(w http.ResponseWriter, r *http.Request) {
 		email = user.Username + "@example.com"
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", map[string]interface{}{
+	h.SendSuccess(w, r, "获取成功", map[string]interface{}{
 		"userId":   user.ID,
 		"userName": displayName,
 		"email":    email,
@@ -153,11 +153,11 @@ func (h *AuthHandler) handleUserInfo(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) handleSlideCaptcha(w http.ResponseWriter, r *http.Request) {
 	result, err := utils.GenerateSlideCaptcha()
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to generate slide captcha", nil)
+		h.SendError(w, r, 500, "Failed to generate slide captcha")
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", result)
+	h.SendSuccess(w, r, "获取成功", result)
 }
 
 // handleRefreshToken processes token refresh requests (POST)
@@ -187,15 +187,15 @@ func (h *AuthHandler) handleRefreshToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	if refreshToken == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "refresh_token 不能为空", nil)
+		h.SendError(w, r, 400, "refresh_token 不能为空")
 		return
 	}
 
 	result, err := h.adminService.RefreshToken(r.Context(), refreshToken)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 400, err.Error(), nil)
+		h.SendError(w, r, 400, err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "刷新成功", result)
+	h.SendSuccess(w, r, "刷新成功", result)
 }

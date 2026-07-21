@@ -38,13 +38,13 @@ func (h *DashboardHandler) InitRoutes() []handler.Route {
 func (h *DashboardHandler) handleDashboardStats(w http.ResponseWriter, r *http.Request) {
 	apps, err := h.appService.ListApps(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load apps: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load apps: "+err.Error())
 		return
 	}
 
 	tokens, err := h.tokenService.ListTokens(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load tokens: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load tokens: "+err.Error())
 		return
 	}
 
@@ -58,7 +58,7 @@ func (h *DashboardHandler) handleDashboardStats(w http.ResponseWriter, r *http.R
 	// Load daily access trend for the past 7 days (6 past days + today)
 	trend, err := h.tokenService.GetDailyAccessTrend(r.Context(), 6)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load trend: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load trend: "+err.Error())
 		return
 	}
 
@@ -69,5 +69,5 @@ func (h *DashboardHandler) handleDashboardStats(w http.ResponseWriter, r *http.R
 		"trend":       trend,
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", stats)
+	h.SendSuccess(w, r, "获取成功", stats)
 }

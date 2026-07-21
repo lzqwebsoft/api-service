@@ -57,7 +57,7 @@ func (h *FeedbackHandler) handleListFeedback(w http.ResponseWriter, r *http.Requ
 
 	list, total, err := h.feedbackService.ListFeedback(r.Context(), limit, offset)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "加载反馈列表失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "加载反馈列表失败: "+err.Error())
 		return
 	}
 
@@ -66,7 +66,7 @@ func (h *FeedbackHandler) handleListFeedback(w http.ResponseWriter, r *http.Requ
 		"total": total,
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
+	h.SendSuccess(w, r, "获取成功", res)
 }
 
 // handleUpdateStatus updates feedback processing status
@@ -84,17 +84,17 @@ func (h *FeedbackHandler) handleUpdateStatus(w http.ResponseWriter, r *http.Requ
 	}
 
 	if req.ID <= 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "无效的反馈 ID", nil)
+		h.SendError(w, r, 400, "无效的反馈 ID")
 		return
 	}
 
 	err := h.feedbackService.UpdateStatus(r.Context(), req.ID, req.Status)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "更新状态失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "更新状态失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "状态更新成功", nil)
+	h.SendSuccess(w, r, "状态更新成功", nil)
 }
 
 // handleDeleteFeedback deletes a user feedback record
@@ -109,15 +109,15 @@ func (h *FeedbackHandler) handleDeleteFeedback(w http.ResponseWriter, r *http.Re
 	}
 
 	if req.ID <= 0 {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "无效的反馈 ID", nil)
+		h.SendError(w, r, 400, "无效的反馈 ID")
 		return
 	}
 
 	err := h.feedbackService.DeleteFeedback(r.Context(), req.ID)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "删除反馈失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "删除反馈失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "反馈记录已成功删除", nil)
+	h.SendSuccess(w, r, "反馈记录已成功删除", nil)
 }

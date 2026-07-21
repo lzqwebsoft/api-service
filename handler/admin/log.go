@@ -57,13 +57,13 @@ func (h *LogHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
 
 	logs, total, err := h.tokenService.ListAccessLogs(r.Context(), limit, offset)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load logs: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load logs: "+err.Error())
 		return
 	}
 
 	blacklist, err := h.tokenService.ListBlacklist(r.Context())
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "Failed to load blacklist: "+err.Error(), nil)
+		h.SendError(w, r, 500, "Failed to load blacklist: "+err.Error())
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *LogHandler) handleLogs(w http.ResponseWriter, r *http.Request) {
 		"blacklistedKeys": blacklistedKeys,
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "获取成功", res)
+	h.SendSuccess(w, r, "获取成功", res)
 }
 
 // handleLogsBlacklist processes one-click blacklisting from a log entry
@@ -101,7 +101,7 @@ func (h *LogHandler) handleLogsBlacklist(w http.ResponseWriter, r *http.Request)
 	}
 
 	if (req.TokenID == 0 && req.Token == "") || req.UserUUID == "" {
-		handler.SendAdminJSON(w, http.StatusOK, 400, "缺失 Token 或用户 UUID", nil)
+		h.SendError(w, r, 400, "缺失 Token 或用户 UUID")
 		return
 	}
 
@@ -113,9 +113,9 @@ func (h *LogHandler) handleLogsBlacklist(w http.ResponseWriter, r *http.Request)
 
 	err := h.tokenService.AddToBlacklist(r.Context(), entry)
 	if err != nil {
-		handler.SendAdminJSON(w, http.StatusOK, 500, "拉黑失败: "+err.Error(), nil)
+		h.SendError(w, r, 500, "拉黑失败: "+err.Error())
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "用户访问已被一键拉黑", nil)
+	h.SendSuccess(w, r, "用户访问已被一键拉黑", nil)
 }
