@@ -165,5 +165,5 @@ func (h *AppHandler) handleDeleteApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler.SendAdminJSON(w, http.StatusOK, 200, "应用及对应 Token 已成功删除", nil)
+	handler.SendAdminJSON(w, http.StatusOK, 200, "应用已成功删除", nil)
 }

@@ -87,7 +87,7 @@ export function fetchGetLogs(params?: { current?: number; size?: number }) {
 }
 
 // Add token from logs to blacklist (One-click)
-export function fetchAddLogBlacklist(data: { token_id?: number; token?: string; user_uuid: string }) {
+export function fetchAddLogBlacklist(data: { token_id: number; token: string; user_uuid: string }) {
   return request.post({
     url: '/admin/logs/blacklist',
     data

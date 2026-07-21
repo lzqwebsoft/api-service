@@ -36,7 +36,10 @@
     "tips": "Prompt",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "logOutTips": "Do you want to log out?"
+    "logOutTips": "Do you want to log out?",
+    "copy": "Copy",
+    "copySuccess": "Copied to clipboard",
+    "copyFailed": "Copy failed"
   },
   "search": {
     "placeholder": "Search page",

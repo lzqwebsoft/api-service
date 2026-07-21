@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `apps` (
     `name` VARCHAR(100) NOT NULL,
     `version` VARCHAR(50) NOT NULL,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,    -- 1: Active, 0: Inactive
+    `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,   -- 1: Deleted, 0: Normal
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY `idx_appid_version` (`app_id`, `version`)

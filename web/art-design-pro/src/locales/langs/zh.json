@@ -36,7 +36,10 @@
     "tips": "提示",
     "cancel": "取消",
     "confirm": "确定",
-    "logOutTips": "您是否要退出登录?"
+    "logOutTips": "您是否要退出登录?",
+    "copy": "复制",
+    "copySuccess": "已复制到剪贴板",
+    "copyFailed": "复制失败"
   },
   "search": {
     "placeholder": "搜索页面",

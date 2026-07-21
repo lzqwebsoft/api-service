@@ -9,6 +9,7 @@ type App struct {
 	Name      string    `json:"name"`
 	Version   string    `json:"version"`
 	IsActive  bool      `json:"is_active"`  // Active status
+	IsDeleted bool      `json:"is_deleted,omitempty"` // Soft delete status
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

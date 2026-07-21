@@ -68,7 +68,7 @@
 
     <!-- Dialog: Register App -->
     <ElDialog v-model="registerDialogVisible" :title="t('tokenManage.register')" width="500px">
-      <ElForm :model="registerForm" label-width="120px" :rules="formRules" ref="registerFormRef">
+      <ElForm :model="registerForm" label-width="140px" :rules="formRules" ref="registerFormRef">
         <ElFormItem :label="t('tokenManage.appId')" prop="app_id">
           <ElInput v-model="registerForm.app_id" :placeholder="t('tokenManage.placeholderAppId')" />
         </ElFormItem>
@@ -92,7 +92,7 @@
 
     <!-- Dialog: Generate Token -->
     <ElDialog v-model="generateTokenDialogVisible" :title="t('tokenManage.generate')" width="500px">
-      <ElForm :model="tokenForm" label-width="120px">
+      <ElForm :model="tokenForm" label-width="140px">
         <ElFormItem :label="t('tokenManage.appName')">
           <ElInput :value="`${tokenForm.app_id} (v${tokenForm.version})`" disabled />
         </ElFormItem>
@@ -150,32 +150,107 @@
       size="60%"
     >
       <div v-loading="drawerLoading" class="p-4">
-        <ElTable :data="tokens" stripe style="width: 100%">
-          <ElTableColumn prop="platform" :label="t('tokenManage.platform')" width="100" />
-          <ElTableColumn prop="token" label="Token" min-width="180" show-overflow-tooltip />
-          <ElTableColumn :label="t('tokenManage.createdAt')" width="160">
+        <ElTable
+          :data="tokens"
+          stripe
+          border
+          style="width: 100%"
+          class="rounded-lg overflow-hidden"
+        >
+          <!-- Platform -->
+          <ElTableColumn
+            prop="platform"
+            :label="t('tokenManage.platform')"
+            width="120"
+            align="center"
+          >
             <template #default="scope">
-              {{ formatTime(scope.row.created_at) }}
+              <ElTooltip :content="scope.row.platform" placement="top">
+                <ElTag
+                  :type="getPlatformTagType(scope.row.platform)"
+                  size="small"
+                  class="capitalize font-medium cursor-pointer"
+                >
+                  <ArtSvgIcon :icon="getPlatformIcon(scope.row.platform)" class="text-xs" />
+                </ElTag>
+              </ElTooltip>
             </template>
           </ElTableColumn>
-          <ElTableColumn :label="t('tokenManage.statusLabel')" width="100">
+
+          <!-- Token -->
+          <ElTableColumn prop="token" label="Token (Access Key)" min-width="220">
             <template #default="scope">
-              <ElTag :type="scope.row.revoked ? 'danger' : 'success'">
-                {{ scope.row.revoked ? t('tokenManage.revoked') : t('tokenManage.active') }}
+              <div class="flex items-center justify-between gap-2 group">
+                <span
+                  class="font-mono text-xs text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-zinc-800 px-2 py-1 rounded border border-gray-200 dark:border-zinc-700 truncate select-all"
+                  :title="scope.row.token"
+                >
+                  {{ scope.row.token }}
+                </span>
+                <ElButton
+                  circle
+                  size="small"
+                  type="primary"
+                  link
+                  class="opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  :title="t('common.copy')"
+                  @click="copyToken(scope.row.token)"
+                >
+                  <ArtSvgIcon icon="ri:file-copy-line" class="text-xs" />
+                </ElButton>
+              </div>
+            </template>
+          </ElTableColumn>
+
+          <!-- Created At -->
+          <ElTableColumn :label="t('tokenManage.createdAt')" width="170" align="center">
+            <template #default="scope">
+              <span
+                class="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1"
+              >
+                <ArtSvgIcon icon="ri:time-line" class="text-gray-400 text-xs" />
+                {{ formatTime(scope.row.created_at) }}
+              </span>
+            </template>
+          </ElTableColumn>
+
+          <!-- Status -->
+          <ElTableColumn :label="t('tokenManage.statusLabel')" width="110" align="center">
+            <template #default="scope">
+              <ElTag
+                :type="scope.row.is_revoked ? 'danger' : 'success'"
+                effect="light"
+                size="small"
+                class="rounded-full px-3 font-medium"
+              >
+                <i
+                  class="fas fa-circle text-[6px] mr-1"
+                  :class="scope.row.is_revoked ? 'text-rose-500' : 'text-emerald-500'"
+                ></i>
+                {{ scope.row.is_revoked ? t('tokenManage.revoked') : t('tokenManage.active') }}
               </ElTag>
             </template>
           </ElTableColumn>
-          <ElTableColumn :label="t('tokenManage.operations')" width="120" fixed="right">
+
+          <!-- Operations -->
+          <ElTableColumn
+            :label="t('tokenManage.operations')"
+            width="120"
+            fixed="right"
+            align="center"
+          >
             <template #default="scope">
               <ElButton
-                v-if="!scope.row.revoked"
+                v-if="!scope.row.is_revoked"
                 size="small"
                 type="danger"
+                class="font-medium hover:opacity-80"
                 @click="revokeToken(scope.row)"
               >
+                <ArtSvgIcon icon="ri:forbid-line" class="mr-1 text-xs" />
                 {{ t('tokenManage.revokeBtn') }}
               </ElButton>
-              <span v-else class="text-gray-500">-</span>
+              <span v-else class="text-gray-400 text-xs italic">-</span>
             </template>
           </ElTableColumn>
         </ElTable>
@@ -190,7 +265,7 @@
   import { useI18n } from 'vue-i18n'
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
-  import { useWindowSize } from '@vueuse/core'
+  import { useWindowSize, useClipboard } from '@vueuse/core'
   import {
     fetchGetApps,
     fetchRegisterApp,
@@ -205,6 +280,7 @@
 
   const { t } = useI18n()
   const { height: windowHeight } = useWindowSize()
+  const { copy } = useClipboard()
 
   const computedTableHeight = computed(() => {
     const val = windowHeight.value - 360
@@ -400,8 +476,8 @@
       try {
         await fetchRevokeToken({ token: row.token })
         ElMessage.success(t('tokenManage.successRevoke'))
+        row.is_revoked = true
         loadTokens(currentApp.value.app_id, currentApp.value.version)
-        loadApps()
       } catch (e: any) {
         ElMessage.error(e.message || t('tokenManage.errorRevoke'))
       }
@@ -412,6 +488,33 @@
     if (!timeStr) return '-'
     const d = new Date(timeStr)
     return d.toLocaleString()
+  }
+
+  const copyToken = async (text: string) => {
+    try {
+      await copy(text)
+      ElMessage.success(t('common.copySuccess'))
+    } catch {
+      ElMessage.error(t('common.copyFailed'))
+    }
+  }
+
+  const getPlatformIcon = (platform: string) => {
+    const p = (platform || '').toLowerCase()
+    if (p.includes('android')) return 'ri:android-fill'
+    if (p.includes('ios') || p.includes('mac') || p.includes('apple')) return 'ri:apple-fill'
+    if (p.includes('win')) return 'ri:windows-fill'
+    if (p.includes('linux') || p.includes('ubuntu')) return 'ri:ubuntu-fill'
+    return 'ri:computer-line'
+  }
+
+  const getPlatformTagType = (platform: string) => {
+    const p = (platform || '').toLowerCase()
+    if (p.includes('android')) return 'success'
+    if (p.includes('ios') || p.includes('mac') || p.includes('apple')) return 'primary'
+    if (p.includes('win')) return 'info'
+    if (p.includes('linux')) return 'warning'
+    return 'info'
   }
 </script>
 
