@@ -24,8 +24,8 @@ func NewLogRepository(db *sql.DB) LogRepository {
 }
 
 func (r *mysqlLogRepository) Create(ctx context.Context, entry *models.TokenAccessLog) error {
-	query := `INSERT INTO token_access_logs (token_id, user_uuid, ip, ip_location, api_path) VALUES (?, ?, ?, ?, ?)`
-	result, err := r.db.ExecContext(ctx, query, entry.TokenID, entry.UserUUID, entry.IP, entry.IPLocation, entry.APIPath)
+	query := `INSERT INTO token_access_logs (token_id, user_uuid, ip, ip_location, version, api_path) VALUES (?, ?, ?, ?, ?, ?)`
+	result, err := r.db.ExecContext(ctx, query, entry.TokenID, entry.UserUUID, entry.IP, entry.IPLocation, entry.Version, entry.APIPath)
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (r *mysqlLogRepository) List(ctx context.Context, limit, offset int) ([]*mo
 	}
 
 	query := `
-		SELECT l.id, l.token_id, t.token, a.app_id, a.name, t.platform, a.version, l.user_uuid, l.ip, l.ip_location, l.api_path, l.created_at
+		SELECT l.id, l.token_id, t.token, a.app_id, a.name, t.platform, l.version, l.user_uuid, l.ip, l.ip_location, l.api_path, l.created_at
 		FROM token_access_logs l
 		JOIN tokens t ON l.token_id = t.id
 		JOIN apps a ON t.app_record_id = a.id

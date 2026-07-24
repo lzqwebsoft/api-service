@@ -188,7 +188,13 @@
     "placeholderPlatform": "Please select a platform",
     "ruleAppId": "Please input App ID",
     "ruleAppName": "Please input App Name",
-    "ruleVersion": "Please input version"
+    "ruleVersion": "Please input version",
+    "versionOperator": "Version Operator",
+    "placeholderVersionOperator": "Please select version operator",
+    "deleteConfirmAppOnly": "Are you sure you want to delete app {name}? All associated Access Tokens will be revoked and cannot be recovered!",
+    "editTokenTitle": "Modify Token Version Constraint",
+    "successUpdateTokenVersion": "Token version constraint updated successfully",
+    "errorUpdateTokenVersion": "Failed to update token version constraint"
   },
   "blacklistManage": {
     "title": "Token Access Blacklist",

@@ -16,6 +16,7 @@ type TokenRepository interface {
 	RevokeByApp(ctx context.Context, appRecordID int) error
 	List(ctx context.Context) ([]*models.TokenListItem, error)
 	ListByApp(ctx context.Context, appRecordID int) ([]*models.TokenListItem, error)
+	UpdateVersion(ctx context.Context, id int, version string, operator string) error
 }
 
 type mysqlTokenRepository struct {
@@ -28,8 +29,8 @@ func NewTokenRepository(db *sql.DB) TokenRepository {
 }
 
 func (r *mysqlTokenRepository) Create(ctx context.Context, token *models.Token) error {
-	query := `INSERT INTO tokens (token, app_record_id, platform, is_revoked) VALUES (?, ?, ?, ?)`
-	result, err := r.db.ExecContext(ctx, query, token.Token, token.AppRecordID, token.Platform, token.IsRevoked)
+	query := `INSERT INTO tokens (token, app_record_id, platform, version, version_operator, is_revoked) VALUES (?, ?, ?, ?, ?, ?)`
+	result, err := r.db.ExecContext(ctx, query, token.Token, token.AppRecordID, token.Platform, token.Version, token.VersionOperator, token.IsRevoked)
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,7 @@ func (r *mysqlTokenRepository) Create(ctx context.Context, token *models.Token) 
 
 func (r *mysqlTokenRepository) GetDetails(ctx context.Context, tokenStr string) (*models.TokenDetails, error) {
 	query := `
-		SELECT t.id, t.token, a.app_id, a.name, a.version, t.platform, a.is_active, t.is_revoked
+		SELECT t.id, t.token, a.app_id, a.name, t.version, t.version_operator, t.platform, a.is_active, t.is_revoked
 		FROM tokens t
 		JOIN apps a ON t.app_record_id = a.id
 		WHERE t.token = ?`
@@ -57,6 +58,7 @@ func (r *mysqlTokenRepository) GetDetails(ctx context.Context, tokenStr string) 
 		&details.AppID,
 		&details.AppName,
 		&details.Version,
+		&details.VersionOperator,
 		&details.Platform,
 		&details.IsAppActive,
 		&details.IsRevoked,
@@ -84,7 +86,7 @@ func (r *mysqlTokenRepository) RevokeByApp(ctx context.Context, appRecordID int)
 
 func (r *mysqlTokenRepository) List(ctx context.Context) ([]*models.TokenListItem, error) {
 	query := `
-		SELECT t.id, t.token, a.app_id, a.name, a.version, t.platform, t.is_revoked, t.created_at
+		SELECT t.id, t.token, a.app_id, a.name, t.version, t.version_operator, t.platform, t.is_revoked, t.created_at
 		FROM tokens t
 		JOIN apps a ON t.app_record_id = a.id
 		ORDER BY t.created_at DESC`
@@ -98,7 +100,7 @@ func (r *mysqlTokenRepository) List(ctx context.Context) ([]*models.TokenListIte
 	var tokens []*models.TokenListItem
 	for rows.Next() {
 		var t models.TokenListItem
-		err := rows.Scan(&t.ID, &t.Token, &t.AppID, &t.AppName, &t.Version, &t.Platform, &t.IsRevoked, &t.CreatedAt)
+		err := rows.Scan(&t.ID, &t.Token, &t.AppID, &t.AppName, &t.Version, &t.VersionOperator, &t.Platform, &t.IsRevoked, &t.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +114,7 @@ func (r *mysqlTokenRepository) List(ctx context.Context) ([]*models.TokenListIte
 
 func (r *mysqlTokenRepository) ListByApp(ctx context.Context, appRecordID int) ([]*models.TokenListItem, error) {
 	query := `
-		SELECT t.id, t.token, a.app_id, a.name, a.version, t.platform, t.is_revoked, t.created_at
+		SELECT t.id, t.token, a.app_id, a.name, t.version, t.version_operator, t.platform, t.is_revoked, t.created_at
 		FROM tokens t
 		JOIN apps a ON t.app_record_id = a.id
 		WHERE t.app_record_id = ?
@@ -127,7 +129,7 @@ func (r *mysqlTokenRepository) ListByApp(ctx context.Context, appRecordID int) (
 	var tokens []*models.TokenListItem
 	for rows.Next() {
 		var t models.TokenListItem
-		err := rows.Scan(&t.ID, &t.Token, &t.AppID, &t.AppName, &t.Version, &t.Platform, &t.IsRevoked, &t.CreatedAt)
+		err := rows.Scan(&t.ID, &t.Token, &t.AppID, &t.AppName, &t.Version, &t.VersionOperator, &t.Platform, &t.IsRevoked, &t.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -137,5 +139,11 @@ func (r *mysqlTokenRepository) ListByApp(ctx context.Context, appRecordID int) (
 		return nil, err
 	}
 	return tokens, nil
+}
+
+func (r *mysqlTokenRepository) UpdateVersion(ctx context.Context, id int, version string, operator string) error {
+	query := `UPDATE tokens SET version = ?, version_operator = ? WHERE id = ?`
+	_, err := r.db.ExecContext(ctx, query, version, operator, id)
+	return err
 }
 

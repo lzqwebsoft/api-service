@@ -60,6 +60,7 @@ func (h *FeedbackHandler) handleSubmitFeedback(w http.ResponseWriter, r *http.Re
 
 	tokenID := middleware.GetTokenID(r.Context())
 	userUUID := r.Header.Get("X-User-UUID")
+	version := middleware.GetVersion(r.Context())
 
 	clientIP := utils.GetIPAddr(r)
 	ipLocation := utils.GetIPLocation(clientIP)
@@ -71,6 +72,7 @@ func (h *FeedbackHandler) handleSubmitFeedback(w http.ResponseWriter, r *http.Re
 		Contact:    req.Contact,
 		IP:         clientIP,
 		IPLocation: ipLocation,
+		Version:    version,
 		Status:     0,
 	}
 

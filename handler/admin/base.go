@@ -11,7 +11,6 @@ import (
 type AppDisplay struct {
 	AppID      string `json:"app_id"`
 	Name       string `json:"name"`
-	Version    string `json:"version"`
 	IsActive   bool   `json:"is_active"`
 	TokenCount int    `json:"token_count"`
 }

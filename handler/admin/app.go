@@ -57,48 +57,42 @@ func (h *AppHandler) handleApps(w http.ResponseWriter, r *http.Request) {
 
 	tokenCounts := make(map[string]int)
 	for _, t := range tokens {
-		key := t.AppID + ":" + t.Version
-		tokenCounts[key]++
+		tokenCounts[t.AppID]++
 	}
 
 	var appVMs []AppDisplay
 	for _, app := range apps {
-		key := app.AppID + ":" + app.Version
 		appVMs = append(appVMs, AppDisplay{
 			AppID:      app.AppID,
 			Name:       app.Name,
-			Version:    app.Version,
 			IsActive:   app.IsActive,
-			TokenCount: tokenCounts[key],
+			TokenCount: tokenCounts[app.AppID],
 		})
 	}
 
 	h.SendSuccess(w, r, "获取成功", appVMs)
 }
 
-// handleRegisterApp handles registering a new application version via JSON or Form
+// handleRegisterApp handles registering a new application via JSON or Form
 func (h *AppHandler) handleRegisterApp(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		AppID   string `json:"app_id"`
-		Name    string `json:"name"`
-		Version string `json:"version"`
+		AppID string `json:"app_id"`
+		Name  string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		_ = r.ParseForm()
 		req.AppID = r.FormValue("app_id")
 		req.Name = r.FormValue("name")
-		req.Version = r.FormValue("version")
 	}
 
-	if req.AppID == "" || req.Name == "" || req.Version == "" {
+	if req.AppID == "" || req.Name == "" {
 		h.SendError(w, r, 400, "所有字段均必填")
 		return
 	}
 
 	app := &models.App{
-		AppID:   req.AppID,
-		Name:    req.Name,
-		Version: req.Version,
+		AppID: req.AppID,
+		Name:  req.Name,
 	}
 
 	err := h.appService.RegisterApp(r.Context(), app)
@@ -107,59 +101,55 @@ func (h *AppHandler) handleRegisterApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.SendSuccess(w, r, "新应用版本注册成功", nil)
+	h.SendSuccess(w, r, "新应用注册成功", nil)
 }
 
-// handleToggleApp toggles active/inactive state of a specific application version
+// handleToggleApp toggles active/inactive state of a specific application
 func (h *AppHandler) handleToggleApp(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		AppID    string `json:"app_id"`
-		Version  string `json:"version"`
 		IsActive bool   `json:"is_active"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		_ = r.ParseForm()
 		req.AppID = r.FormValue("app_id")
-		req.Version = r.FormValue("version")
 		req.IsActive = r.FormValue("is_active") == "true"
 	}
 
-	if req.AppID == "" || req.Version == "" {
-		h.SendError(w, r, 400, "缺失 app_id 或 version")
+	if req.AppID == "" {
+		h.SendError(w, r, 400, "缺失 app_id")
 		return
 	}
 
-	err := h.appService.UpdateAppStatus(r.Context(), req.AppID, req.Version, req.IsActive)
+	err := h.appService.UpdateAppStatus(r.Context(), req.AppID, req.IsActive)
 	if err != nil {
 		h.SendError(w, r, 500, "更新状态失败: "+err.Error())
 		return
 	}
 
-	msg := "应用版本已禁用"
+	msg := "应用已禁用"
 	if req.IsActive {
-		msg = "应用版本已启用"
+		msg = "应用已启用"
 	}
 	h.SendSuccess(w, r, msg, nil)
 }
 
-// handleDeleteApp processes deleting an application version
+// handleDeleteApp processes deleting an application
 func (h *AppHandler) handleDeleteApp(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		AppID   string `json:"app_id"`
-		Version string `json:"version"`
+		AppID string `json:"app_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		_ = r.ParseForm()
 		req.AppID = r.FormValue("app_id")
-		req.Version = r.FormValue("version")
 	}
 
-	if req.AppID == "" || req.Version == "" {
-		h.SendError(w, r, 400, "缺失 app_id 或 version")
+	if req.AppID == "" {
+		h.SendError(w, r, 400, "缺失 app_id")
 		return
 	}
 
-	err := h.appService.DeleteApp(r.Context(), req.AppID, req.Version)
+	err := h.appService.DeleteApp(r.Context(), req.AppID)
 	if err != nil {
 		h.SendError(w, r, 500, "删除应用失败: "+err.Error())
 		return

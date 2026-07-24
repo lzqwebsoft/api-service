@@ -131,19 +131,20 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 				logAndErrorResponse(w, r, http.StatusUnauthorized, "Platform does not match token configuration", fmt.Sprintf("Header: %q, TokenConfig: %q", platform, details.Platform))
 				return
 			}
-			if !strings.EqualFold(version, details.Version) {
-				logAndErrorResponse(w, r, http.StatusUnauthorized, "Version does not match token configuration", fmt.Sprintf("Header: %q, TokenConfig: %q", version, details.Version))
+			if !utils.CheckVersionConstraint(version, details.VersionOperator, details.Version) {
+				logAndErrorResponse(w, r, http.StatusUnauthorized, "Version does not satisfy token configuration", fmt.Sprintf("Header: %q, TokenConfig: %s %s", version, details.VersionOperator, details.Version))
 				return
 			}
 
 			clientIP := utils.GetIPAddr(r)
 
-			// Log token access
+			// Log token access with actual request version
 			accessLog := &models.TokenAccessLog{
 				TokenID:    details.ID,
 				UserUUID:   userUUID,
 				IP:         clientIP,
 				IPLocation: utils.GetIPLocation(clientIP),
+				Version:    version,
 				APIPath:    r.URL.Path,
 			}
 			_ = tokenService.LogAccess(r.Context(), accessLog)
@@ -155,9 +156,9 @@ func AuthMiddleware(tokenService service.TokenService) func(http.Handler) http.H
 				return
 			}
 
-			// Inject the verified AppID, Version and TokenID into the request context
+			// Inject the verified AppID, actual request Version and TokenID into the request context
 			ctx := context.WithValue(r.Context(), ContextKeyAppID, details.AppID)
-			ctx = context.WithValue(ctx, ContextKeyVersion, details.Version)
+			ctx = context.WithValue(ctx, ContextKeyVersion, version)
 			ctx = context.WithValue(ctx, ContextKeyTokenID, details.ID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))

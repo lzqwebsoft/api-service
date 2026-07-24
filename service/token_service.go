@@ -24,11 +24,12 @@ var (
 
 // TokenService manages the lifecycle and security rules of access tokens
 type TokenService interface {
-	GenerateToken(ctx context.Context, appID string, version string, platform string) (*models.Token, error)
+	GenerateToken(ctx context.Context, appID string, version string, versionOperator string, platform string) (*models.Token, error)
 	ValidateToken(ctx context.Context, tokenStr string) (*models.TokenDetails, error)
 	RevokeToken(ctx context.Context, tokenStr string) error
 	ListTokens(ctx context.Context) ([]*models.TokenListItem, error)
-	ListTokensByApp(ctx context.Context, appID string, version string) ([]*models.TokenListItem, error)
+	ListTokensByApp(ctx context.Context, appID string) ([]*models.TokenListItem, error)
+	UpdateTokenVersion(ctx context.Context, id int, version string, operator string) error
 
 	// Blacklist methods
 	AddToBlacklist(ctx context.Context, blacklist *models.TokenBlacklist) error
@@ -64,9 +65,9 @@ func NewTokenService(
 	}
 }
 
-func (s *tokenService) GenerateToken(ctx context.Context, appID string, version string, platform string) (*models.Token, error) {
-	// Verify that the app version exists and is active
-	app, err := s.appRepo.GetByAppIDAndVersion(ctx, appID, version)
+func (s *tokenService) GenerateToken(ctx context.Context, appID string, version string, versionOperator string, platform string) (*models.Token, error) {
+	// Verify that the app exists and is active
+	app, err := s.appRepo.GetByAppID(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,11 +82,17 @@ func (s *tokenService) GenerateToken(ctx context.Context, appID string, version 
 	}
 	tokenStr := hex.EncodeToString(bytes)
 
+	if versionOperator == "" {
+		versionOperator = "="
+	}
+
 	token := &models.Token{
-		Token:       tokenStr,
-		AppRecordID: app.ID,
-		Platform:    platform,
-		IsRevoked:   false,
+		Token:           tokenStr,
+		AppRecordID:     app.ID,
+		Platform:        platform,
+		Version:         version,
+		VersionOperator: versionOperator,
+		IsRevoked:       false,
 	}
 
 	err = s.tokenRepo.Create(ctx, token)
@@ -111,7 +118,7 @@ func (s *tokenService) ValidateToken(ctx context.Context, tokenStr string) (*mod
 		return nil, ErrTokenRevoked
 	}
 
-	// Check if the app version configuration is active
+	// Check if the app is active
 	if !details.IsAppActive {
 		return nil, ErrAppInactive
 	}
@@ -127,8 +134,8 @@ func (s *tokenService) ListTokens(ctx context.Context) ([]*models.TokenListItem,
 	return s.tokenRepo.List(ctx)
 }
 
-func (s *tokenService) ListTokensByApp(ctx context.Context, appID string, version string) ([]*models.TokenListItem, error) {
-	app, err := s.appRepo.GetByAppIDAndVersion(ctx, appID, version)
+func (s *tokenService) ListTokensByApp(ctx context.Context, appID string) ([]*models.TokenListItem, error) {
+	app, err := s.appRepo.GetByAppID(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -201,4 +208,11 @@ func (s *tokenService) GetDailyAccessTrend(ctx context.Context, days int) ([]*mo
 	}
 
 	return trend, nil
+}
+
+func (s *tokenService) UpdateTokenVersion(ctx context.Context, id int, version string, operator string) error {
+	if operator == "" {
+		operator = "="
+	}
+	return s.tokenRepo.UpdateVersion(ctx, id, version, operator)
 }

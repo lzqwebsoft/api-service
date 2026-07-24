@@ -4,14 +4,12 @@ USE `api_service`;
 
 CREATE TABLE IF NOT EXISTS `apps` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `app_id` VARCHAR(50) NOT NULL,
+    `app_id` VARCHAR(50) NOT NULL UNIQUE,
     `name` VARCHAR(100) NOT NULL,
-    `version` VARCHAR(50) NOT NULL,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,    -- 1: Active, 0: Inactive
     `is_deleted` TINYINT(1) NOT NULL DEFAULT 0,   -- 1: Deleted, 0: Normal
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY `idx_appid_version` (`app_id`, `version`)
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `tokens` (
@@ -19,6 +17,8 @@ CREATE TABLE IF NOT EXISTS `tokens` (
     `token` VARCHAR(255) NOT NULL UNIQUE,
     `app_record_id` INT NOT NULL,
     `platform` VARCHAR(20) NOT NULL,
+    `version` VARCHAR(50) NOT NULL DEFAULT '',
+    `version_operator` VARCHAR(10) NOT NULL DEFAULT '=',
     `is_revoked` TINYINT(1) NOT NULL DEFAULT 0,  -- 1: Revoked, 0: Active
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY `idx_token` (`token`),
@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS `token_access_logs` (
     `user_uuid` VARCHAR(100) NOT NULL,
     `ip` VARCHAR(45) NOT NULL,
     `ip_location` VARCHAR(100) DEFAULT '' COMMENT 'IP归属地',
+    `version` VARCHAR(50) NOT NULL DEFAULT '',
     `api_path` VARCHAR(255) NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_token_access_logs_token` FOREIGN KEY (`token_id`) REFERENCES `tokens` (`id`) ON DELETE CASCADE
@@ -157,6 +158,7 @@ CREATE TABLE IF NOT EXISTS `user_feedback` (
     `contact` VARCHAR(255) DEFAULT '' COMMENT '联系方式（邮箱/手机号/微信等）',
     `ip` VARCHAR(45) DEFAULT '' COMMENT '客户端IP',
     `ip_location` VARCHAR(255) DEFAULT '' COMMENT 'IP归属性地',
+    `version` VARCHAR(50) NOT NULL DEFAULT '',
     `status` INT DEFAULT 0 COMMENT '处理状态 0:待处理 1:已处理',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_user_feedback_token` FOREIGN KEY (`token_id`) REFERENCES `tokens` (`id`) ON DELETE CASCADE

@@ -47,7 +47,7 @@ func (r *mysqlBlacklistRepository) Delete(ctx context.Context, id int) error {
 
 func (r *mysqlBlacklistRepository) List(ctx context.Context) ([]*models.TokenBlacklist, error) {
 	query := `
-		SELECT b.id, b.token_id, t.token, a.app_id, a.name, t.platform, a.version, b.user_uuid, b.created_at
+		SELECT b.id, b.token_id, t.token, a.app_id, a.name, t.platform, t.version, b.user_uuid, b.created_at
 		FROM token_blacklist b
 		JOIN tokens t ON b.token_id = t.id
 		JOIN apps a ON t.app_record_id = a.id

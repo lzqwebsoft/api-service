@@ -75,12 +75,6 @@
         <ElFormItem :label="t('tokenManage.appName')" prop="name">
           <ElInput v-model="registerForm.name" :placeholder="t('tokenManage.placeholderAppName')" />
         </ElFormItem>
-        <ElFormItem :label="t('tokenManage.version')" prop="version">
-          <ElInput
-            v-model="registerForm.version"
-            :placeholder="t('tokenManage.placeholderVersion')"
-          />
-        </ElFormItem>
       </ElForm>
       <template #footer>
         <span class="dialog-footer">
@@ -93,8 +87,8 @@
     <!-- Dialog: Generate Token -->
     <ElDialog v-model="generateTokenDialogVisible" :title="t('tokenManage.generate')" width="500px">
       <ElForm :model="tokenForm" label-width="140px">
-        <ElFormItem :label="t('tokenManage.appName')">
-          <ElInput :value="`${tokenForm.app_id} (v${tokenForm.version})`" disabled />
+        <ElFormItem :label="t('tokenManage.appId')">
+          <ElInput :value="tokenForm.app_id" disabled />
         </ElFormItem>
         <ElFormItem :label="t('tokenManage.selectPlatform')">
           <ElSelect
@@ -108,6 +102,23 @@
             <ElOption label="Linux" value="Linux" />
             <ElOption label="mac" value="mac" />
           </ElSelect>
+        </ElFormItem>
+        <ElFormItem :label="t('tokenManage.versionOperator')">
+          <ElSelect
+            v-model="tokenForm.version_operator"
+            :placeholder="t('tokenManage.placeholderVersionOperator')"
+            style="width: 100%"
+          >
+            <ElOption label="=" value="=" />
+            <ElOption label=">=" value=">=" />
+            <ElOption label=">" value=">" />
+            <ElOption label="<=" value="<=" />
+            <ElOption label="<" value="<" />
+            <ElOption label="all" value="all" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem :label="t('tokenManage.version')">
+          <ElInput v-model="tokenForm.version" :placeholder="t('tokenManage.placeholderVersion')" />
         </ElFormItem>
       </ElForm>
       <template #footer>
@@ -143,10 +154,48 @@
       </template>
     </ElDialog>
 
+    <!-- Dialog: Edit Token Version Constraint -->
+    <ElDialog
+      v-model="editTokenDialogVisible"
+      :title="t('tokenManage.editTokenTitle')"
+      width="500px"
+    >
+      <ElForm :model="editTokenForm" label-width="140px">
+        <ElFormItem :label="t('tokenManage.versionOperator')">
+          <ElSelect
+            v-model="editTokenForm.version_operator"
+            :placeholder="t('tokenManage.placeholderVersionOperator')"
+            style="width: 100%"
+          >
+            <ElOption label="=" value="=" />
+            <ElOption label=">=" value=">=" />
+            <ElOption label=">" value=">" />
+            <ElOption label="<=" value="<=" />
+            <ElOption label="<" value="<" />
+            <ElOption label="all" value="all" />
+          </ElSelect>
+        </ElFormItem>
+        <ElFormItem :label="t('tokenManage.version')">
+          <ElInput
+            v-model="editTokenForm.version"
+            :placeholder="t('tokenManage.placeholderVersion')"
+          />
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <span class="dialog-footer">
+          <ElButton @click="editTokenDialogVisible = false">{{ t('common.cancel') }}</ElButton>
+          <ElButton type="primary" @click="submitUpdateTokenVersion">{{
+            t('common.confirm')
+          }}</ElButton>
+        </span>
+      </template>
+    </ElDialog>
+
     <!-- Drawer: Tokens List -->
     <ElDrawer
       v-model="tokensDrawerVisible"
-      :title="`${t('tokenManage.manage')}: ${currentApp.app_id} (v${currentApp.version})`"
+      :title="`${t('tokenManage.manage')}: ${currentApp.app_id} (${currentApp.name})`"
       size="60%"
     >
       <div v-loading="drawerLoading" class="p-4">
@@ -161,7 +210,7 @@
           <ElTableColumn
             prop="platform"
             :label="t('tokenManage.platform')"
-            width="120"
+            width="90"
             align="center"
           >
             <template #default="scope">
@@ -174,6 +223,29 @@
                   <ArtSvgIcon :icon="getPlatformIcon(scope.row.platform)" class="text-xs" />
                 </ElTag>
               </ElTooltip>
+            </template>
+          </ElTableColumn>
+
+          <!-- Version Constraint -->
+          <ElTableColumn :label="t('tokenManage.version')" width="130" align="center">
+            <template #default="scope">
+              <div class="relative flex items-center justify-center w-full px-4">
+                <ElTag size="small" type="info">
+                  {{ scope.row.version_operator || '=' }} {{ scope.row.version || '*' }}
+                </ElTag>
+                <ElButton
+                  v-if="!scope.row.is_revoked"
+                  circle
+                  size="small"
+                  type="primary"
+                  link
+                  class="absolute right-0"
+                  :title="t('tokenManage.editTokenTitle')"
+                  @click="openEditTokenDialog(scope.row)"
+                >
+                  <ArtSvgIcon icon="ri:edit-line" class="text-xs" />
+                </ElButton>
+              </div>
             </template>
           </ElTableColumn>
 
@@ -203,19 +275,18 @@
           </ElTableColumn>
 
           <!-- Created At -->
-          <ElTableColumn :label="t('tokenManage.createdAt')" width="170" align="center">
+          <ElTableColumn :label="t('tokenManage.createdAt')" width="120" align="center">
             <template #default="scope">
               <span
                 class="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1"
               >
-                <ArtSvgIcon icon="ri:time-line" class="text-gray-400 text-xs" />
                 {{ formatTime(scope.row.created_at) }}
               </span>
             </template>
           </ElTableColumn>
 
           <!-- Status -->
-          <ElTableColumn :label="t('tokenManage.statusLabel')" width="110" align="center">
+          <ElTableColumn :label="t('tokenManage.statusLabel')" width="95" align="center">
             <template #default="scope">
               <ElTag
                 :type="scope.row.is_revoked ? 'danger' : 'success'"
@@ -235,7 +306,7 @@
           <!-- Operations -->
           <ElTableColumn
             :label="t('tokenManage.operations')"
-            width="120"
+            width="100"
             fixed="right"
             align="center"
           >
@@ -273,7 +344,8 @@
     fetchDeleteApp,
     fetchGetTokens,
     fetchGenerateToken,
-    fetchRevokeToken
+    fetchRevokeToken,
+    fetchUpdateTokenVersion
   } from '@/api/token'
 
   defineOptions({ name: 'Apps' })
@@ -297,6 +369,13 @@
   const generateTokenDialogVisible = ref(false)
   const tokenResultDialogVisible = ref(false)
   const tokensDrawerVisible = ref(false)
+  const editTokenDialogVisible = ref(false)
+
+  const editTokenForm = reactive({
+    id: 0,
+    version: '',
+    version_operator: '='
+  })
 
   const generatedToken = ref('')
   const currentApp = ref<any>({})
@@ -304,21 +383,20 @@
   // Form states
   const registerForm = reactive({
     app_id: '',
-    name: '',
-    version: ''
+    name: ''
   })
 
   const tokenForm = reactive({
     app_id: '',
     version: '',
+    version_operator: '=',
     platform: 'android'
   })
 
   // Reactive translation rules
   const formRules = computed(() => ({
     app_id: [{ required: true, message: t('tokenManage.ruleAppId'), trigger: 'blur' }],
-    name: [{ required: true, message: t('tokenManage.ruleAppName'), trigger: 'blur' }],
-    version: [{ required: true, message: t('tokenManage.ruleVersion'), trigger: 'blur' }]
+    name: [{ required: true, message: t('tokenManage.ruleAppName'), trigger: 'blur' }]
   }))
 
   const registerFormRef = ref()
@@ -328,13 +406,6 @@
     { type: 'globalIndex', label: t('tokenManage.index'), width: 80, align: 'center' },
     { prop: 'app_id', label: t('tokenManage.appId'), minWidth: 150 },
     { prop: 'name', label: t('tokenManage.appName'), minWidth: 180 },
-    {
-      prop: 'version',
-      label: t('tokenManage.version'),
-      width: 120,
-      useSlot: true,
-      slotName: 'version'
-    },
     {
       prop: 'is_active',
       label: t('tokenManage.status'),
@@ -378,7 +449,6 @@
   const openRegisterDialog = () => {
     registerForm.app_id = ''
     registerForm.name = ''
-    registerForm.version = ''
     registerDialogVisible.value = true
   }
 
@@ -400,7 +470,6 @@
     try {
       await fetchToggleApp({
         app_id: row.app_id,
-        version: row.version,
         is_active: row.is_active
       })
       ElMessage.success(row.is_active ? t('tokenManage.appEnabled') : t('tokenManage.appDisabled'))
@@ -412,7 +481,7 @@
 
   const deleteAppVersion = (row: any) => {
     ElMessageBox.confirm(
-      t('tokenManage.deleteConfirm', { name: row.name, version: row.version }),
+      t('tokenManage.deleteConfirmAppOnly', { name: row.name }),
       t('tokenManage.warning'),
       {
         confirmButtonText: t('common.confirm'),
@@ -421,7 +490,7 @@
       }
     ).then(async () => {
       try {
-        await fetchDeleteApp({ app_id: row.app_id, version: row.version })
+        await fetchDeleteApp({ app_id: row.app_id })
         ElMessage.success(t('tokenManage.successDelete'))
         loadApps()
       } catch (e: any) {
@@ -432,7 +501,8 @@
 
   const openGenerateTokenDialog = (row: any) => {
     tokenForm.app_id = row.app_id
-    tokenForm.version = row.version
+    tokenForm.version = ''
+    tokenForm.version_operator = '='
     tokenForm.platform = 'android'
     generateTokenDialogVisible.value = true
   }
@@ -452,13 +522,13 @@
   const openTokensDrawer = async (row: any) => {
     currentApp.value = row
     tokensDrawerVisible.value = true
-    loadTokens(row.app_id, row.version)
+    loadTokens(row.app_id)
   }
 
-  const loadTokens = async (appId: string, version: string) => {
+  const loadTokens = async (appId: string) => {
     drawerLoading.value = true
     try {
-      const res = await fetchGetTokens({ app_id: appId, version })
+      const res = await fetchGetTokens({ app_id: appId })
       tokens.value = res.tokens || []
     } catch (e: any) {
       ElMessage.error(e.message || t('tokenManage.errorLoadTokens'))
@@ -477,11 +547,29 @@
         await fetchRevokeToken({ token: row.token })
         ElMessage.success(t('tokenManage.successRevoke'))
         row.is_revoked = true
-        loadTokens(currentApp.value.app_id, currentApp.value.version)
+        loadTokens(currentApp.value.app_id)
       } catch (e: any) {
         ElMessage.error(e.message || t('tokenManage.errorRevoke'))
       }
     })
+  }
+
+  const openEditTokenDialog = (row: any) => {
+    editTokenForm.id = row.id
+    editTokenForm.version = row.version
+    editTokenForm.version_operator = row.version_operator || '='
+    editTokenDialogVisible.value = true
+  }
+
+  const submitUpdateTokenVersion = async () => {
+    try {
+      await fetchUpdateTokenVersion(editTokenForm)
+      ElMessage.success(t('tokenManage.successUpdateTokenVersion'))
+      editTokenDialogVisible.value = false
+      loadTokens(currentApp.value.app_id)
+    } catch (e: any) {
+      ElMessage.error(e.message || t('tokenManage.errorUpdateTokenVersion'))
+    }
   }
 
   const formatTime = (timeStr: string) => {

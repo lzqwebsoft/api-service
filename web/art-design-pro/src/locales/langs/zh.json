@@ -188,7 +188,13 @@
     "placeholderPlatform": "请选择使用平台",
     "ruleAppId": "请输入应用标识",
     "ruleAppName": "请输入应用名称",
-    "ruleVersion": "请输入版本号"
+    "ruleVersion": "请输入版本号",
+    "versionOperator": "版本比对运算符",
+    "placeholderVersionOperator": "请选择运算符",
+    "deleteConfirmAppOnly": "确定要删除应用 {name} 吗？删除后对应的 Access Token 将一并撤销且无法恢复！",
+    "editTokenTitle": "修改 Token 版本约束",
+    "successUpdateTokenVersion": "Token 版本约束更新成功",
+    "errorUpdateTokenVersion": "更新 Token 版本约束失败"
   },
   "blacklistManage": {
     "title": "Token 访问黑名单",

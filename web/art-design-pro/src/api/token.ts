@@ -7,8 +7,8 @@ export function fetchGetApps() {
   })
 }
 
-// Register new app version
-export function fetchRegisterApp(data: { app_id: string; name: string; version: string }) {
+// Register new app
+export function fetchRegisterApp(data: { app_id: string; name: string }) {
   return request.post({
     url: '/admin/apps/register',
     data
@@ -16,15 +16,15 @@ export function fetchRegisterApp(data: { app_id: string; name: string; version: 
 }
 
 // Toggle app status
-export function fetchToggleApp(data: { app_id: string; version: string; is_active: boolean }) {
+export function fetchToggleApp(data: { app_id: string; is_active: boolean }) {
   return request.post({
     url: '/admin/apps/toggle',
     data
   })
 }
 
-// Delete app version
-export function fetchDeleteApp(data: { app_id: string; version: string }) {
+// Delete app
+export function fetchDeleteApp(data: { app_id: string }) {
   return request.post({
     url: '/admin/apps/delete',
     data
@@ -32,7 +32,7 @@ export function fetchDeleteApp(data: { app_id: string; version: string }) {
 }
 
 // Get tokens for specific app or all tokens
-export function fetchGetTokens(params?: { app_id?: string; version?: string }) {
+export function fetchGetTokens(params?: { app_id?: string }) {
   return request.get<any>({
     url: '/admin/tokens',
     params
@@ -40,7 +40,12 @@ export function fetchGetTokens(params?: { app_id?: string; version?: string }) {
 }
 
 // Generate token
-export function fetchGenerateToken(data: { app_id: string; version: string; platform: string }) {
+export function fetchGenerateToken(data: {
+  app_id: string
+  version: string
+  version_operator: string
+  platform: string
+}) {
   return request.post<any>({
     url: '/admin/tokens/generate',
     data
@@ -51,6 +56,18 @@ export function fetchGenerateToken(data: { app_id: string; version: string; plat
 export function fetchRevokeToken(data: { token: string }) {
   return request.post({
     url: '/admin/tokens/revoke',
+    data
+  })
+}
+
+// Update token version constraint
+export function fetchUpdateTokenVersion(data: {
+  id: number
+  version: string
+  version_operator: string
+}) {
+  return request.post({
+    url: '/admin/tokens/update',
     data
   })
 }
