@@ -163,3 +163,32 @@ CREATE TABLE IF NOT EXISTS `user_feedback` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_user_feedback_token` FOREIGN KEY (`token_id`) REFERENCES `tokens` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户意见反馈表';
+
+CREATE TABLE IF NOT EXISTS `app_files` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `app_record_id` INT NOT NULL,
+    `version` VARCHAR(50) NOT NULL DEFAULT '',
+    `file_name` VARCHAR(255) NOT NULL,
+    `download_url` TEXT NOT NULL,
+    `file_size` BIGINT DEFAULT 0,
+    `description` TEXT,
+    `download_count` INT DEFAULT 0,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY `idx_app_record_id` (`app_record_id`),
+    CONSTRAINT `fk_app_files_app` FOREIGN KEY (`app_record_id`) REFERENCES `apps` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='应用文件发布表';
+
+CREATE TABLE IF NOT EXISTS `file_download_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `file_id` INT NOT NULL,
+    `ip` VARCHAR(50) DEFAULT '',
+    `ip_location` VARCHAR(100) DEFAULT '',
+    `user_agent` TEXT,
+    `referer` TEXT,
+    `channel` VARCHAR(50) DEFAULT '',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY `idx_file_id` (`file_id`),
+    CONSTRAINT `fk_download_logs_file` FOREIGN KEY (`file_id`) REFERENCES `app_files` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件下载日志表';

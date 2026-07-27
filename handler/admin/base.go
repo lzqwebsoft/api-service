@@ -9,6 +9,7 @@ import (
 
 // AppDisplay extends models.App with token counts for rendering
 type AppDisplay struct {
+	ID         int    `json:"id"`
 	AppID      string `json:"app_id"`
 	Name       string `json:"name"`
 	IsActive   bool   `json:"is_active"`

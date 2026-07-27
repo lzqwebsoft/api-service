@@ -129,6 +129,7 @@ func SeedRBAC(sqlDB *sql.DB) {
 			(5, 3, 'Blacklist', 'blacklist', '/token/blacklist', 'menus.token.blacklist', 'ri:forbid-line', 0, 1, 0, 0, 0, 2),
 			(6, 3, 'Logs', 'logs', '/token/logs', 'menus.token.logs', 'ri:file-list-line', 0, 1, 0, 0, 0, 3),
 			(15, 3, 'Feedback', 'feedback', '/token/feedback', 'menus.token.feedback', 'ri:feedback-line', 0, 1, 0, 0, 0, 4),
+			(16, 3, 'Files', 'files', '/token/files', 'menus.token.files', 'ri:file-download-line', 0, 1, 0, 0, 0, 5),
 			
 			(7, 0, 'Calendar', '/calendar', '/index/index', 'menus.calendar.title', 'ri:calendar-todo-line', 0, 0, 0, 0, 0, 3),
 			(8, 7, 'Arrange', 'arrange', '/calendar/arrange', 'menus.calendar.arrange', 'ri:calendar-check-line', 0, 1, 0, 0, 0, 1),
@@ -160,8 +161,8 @@ func SeedRBAC(sqlDB *sql.DB) {
 		// Insert role menu relationships
 		_, err = sqlDB.ExecContext(ctx, `
 			INSERT INTO admin_role_menus (role_id, menu_id) VALUES
-			(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15),
-			(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 13), (2, 15)
+			(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16),
+			(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 13), (2, 15), (2, 16)
 		`)
 		if err != nil {
 			logger.Errorf("Failed to seed role menus: %v", err)

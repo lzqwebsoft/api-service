@@ -63,6 +63,7 @@ func (h *AppHandler) handleApps(w http.ResponseWriter, r *http.Request) {
 	var appVMs []AppDisplay
 	for _, app := range apps {
 		appVMs = append(appVMs, AppDisplay{
+			ID:         app.ID,
 			AppID:      app.AppID,
 			Name:       app.Name,
 			IsActive:   app.IsActive,
