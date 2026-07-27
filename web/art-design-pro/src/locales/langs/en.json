@@ -247,6 +247,7 @@
     "ruleVersion": "Please input version",
     "ruleFileName": "Please input file name",
     "ruleDownloadUrl": "Please input download URL",
+    "ruleUploadFile": "Please upload a local file",
     "statusUpdated": "Status updated successfully",
     "statusUpdateFailed": "Failed to update status",
     "uploadSuccess": "File uploaded to runtimes/uploads successfully",

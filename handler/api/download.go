@@ -12,6 +12,7 @@ import (
 	"api-service/handler"
 	"api-service/models"
 	"api-service/service"
+	"api-service/utils"
 )
 
 // DownloadHandler handles public download redirection and tracking
@@ -47,7 +48,7 @@ func (h *DownloadHandler) handleDownload(w http.ResponseWriter, r *http.Request)
 	appID := r.URL.Query().Get("app_id")
 	channel := r.URL.Query().Get("channel")
 
-	clientIP := getClientIP(r)
+	clientIP := utils.GetIPAddr(r)
 	userAgent := r.Header.Get("User-Agent")
 	referer := r.Header.Get("Referer")
 
@@ -119,22 +120,4 @@ func (h *DownloadHandler) handleDownload(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(), 10))
 
 	http.ServeFile(w, r, cleanPath)
-}
-
-// getClientIP extracts real client IP considering proxy headers
-func getClientIP(r *http.Request) string {
-	ip := r.Header.Get("X-Real-IP")
-	if ip == "" {
-		ip = r.Header.Get("X-Forwarded-For")
-	}
-	if ip == "" {
-		ip = r.RemoteAddr
-		if idx := strings.LastIndex(ip, ":"); idx != -1 {
-			ip = ip[:idx]
-		}
-	}
-	if strings.Contains(ip, ",") {
-		ip = strings.Split(ip, ",")[0]
-	}
-	return strings.TrimSpace(ip)
 }

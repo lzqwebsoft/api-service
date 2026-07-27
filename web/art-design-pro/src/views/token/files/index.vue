@@ -598,6 +598,9 @@
       return ElMessage.warning(t('fileManage.ruleFileName'))
     }
     if (!fileForm.download_url) {
+      if (storageType.value === 'local') {
+        return ElMessage.warning(t('fileManage.ruleUploadFile'))
+      }
       return ElMessage.warning(t('fileManage.ruleDownloadUrl'))
     }
 

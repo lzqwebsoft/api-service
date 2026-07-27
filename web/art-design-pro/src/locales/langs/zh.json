@@ -247,6 +247,7 @@
     "ruleVersion": "请输入发布版本",
     "ruleFileName": "请输入文件名",
     "ruleDownloadUrl": "请输入下载链接",
+    "ruleUploadFile": "请上传本地文件",
     "statusUpdated": "发布状态已更新",
     "statusUpdateFailed": "更新状态失败",
     "uploadSuccess": "文件成功上传至服务器 runtimes/uploads 目录",

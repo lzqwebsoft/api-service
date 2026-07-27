@@ -89,11 +89,12 @@ func (s *fileService) ProcessDownload(ctx context.Context, fileID int, ip, userA
 		}
 
 		log := &models.FileDownloadLog{
-			FileID:    fID,
-			IP:        clientIP,
-			UserAgent: ua,
-			Referer:   ref,
-			Channel:   ch,
+			FileID:     fID,
+			IP:         clientIP,
+			IPLocation: logger.GetIPLocation(clientIP),
+			UserAgent:  ua,
+			Referer:    ref,
+			Channel:    ch,
 		}
 		if err := s.fileRepo.LogDownload(bgCtx, log); err != nil {
 			logger.Errorf("Failed to log download for file %d: %v", fID, err)
