@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS `admin_sessions` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY `idx_access_token` (`access_token`),
     KEY `idx_refresh_token` (`refresh_token`),
+    KEY `idx_refresh_expires_at` (`refresh_expires_at`),
     CONSTRAINT `fk_admin_sessions_user` FOREIGN KEY (`user_id`) REFERENCES `admin_users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

@@ -75,6 +75,8 @@ declare namespace Api {
     interface LoginResponse {
       token: string
       refreshToken: string
+      expiresAt?: string
+      refreshExpiresAt?: string
     }
 
     /** 用户信息 */

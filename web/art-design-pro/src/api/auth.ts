@@ -15,6 +15,29 @@ export function fetchLogin(params: Api.Auth.LoginParams) {
 }
 
 /**
+ * 刷新 Token
+ * @param refreshToken 刷新令牌
+ * @returns 刷新响应
+ */
+export function fetchRefreshToken(refreshToken: string) {
+  return request.post<Api.Auth.LoginResponse>({
+    url: '/admin/refresh_token',
+    params: { refreshToken },
+    showErrorMessage: false
+  })
+}
+
+/**
+ * 退出登录
+ */
+export function fetchLogout() {
+  return request.post({
+    url: '/admin/logout',
+    showErrorMessage: false
+  })
+}
+
+/**
  * 获取用户信息
  * @returns 用户信息
  */

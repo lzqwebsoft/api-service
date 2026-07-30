@@ -42,6 +42,7 @@ import { setPageTitle } from '@/utils/router'
 import { resetRouterState } from '@/router/guards/beforeEach'
 import { useMenuStore } from './menu'
 import { StorageConfig } from '@/utils/storage/storage-config'
+import { fetchLogout } from '@/api/auth'
 
 /**
  * 用户状态管理
@@ -66,6 +67,10 @@ export const useUserStore = defineStore(
     const accessToken = ref('')
     // 刷新令牌
     const refreshToken = ref('')
+    // 访问令牌过期时间
+    const tokenExpiresAt = ref(0)
+    // 刷新令牌过期时间
+    const refreshTokenExpiresAt = ref(0)
 
     // 计算属性：获取用户信息
     const getUserInfo = computed(() => info.value)
@@ -124,14 +129,31 @@ export const useUserStore = defineStore(
     }
 
     /**
-     * 设置令牌
+     * 设置令牌及过期时间
      * @param newAccessToken 访问令牌
      * @param newRefreshToken 刷新令牌（可选）
+     * @param newExpiresAt 访问令牌过期时间（可选）
+     * @param newRefreshExpiresAt 刷新令牌过期时间（可选）
      */
-    const setToken = (newAccessToken: string, newRefreshToken?: string) => {
+    const setToken = (
+      newAccessToken: string,
+      newRefreshToken?: string,
+      newExpiresAt?: string | number,
+      newRefreshExpiresAt?: string | number
+    ) => {
       accessToken.value = newAccessToken
       if (newRefreshToken) {
         refreshToken.value = newRefreshToken
+      }
+      if (newExpiresAt) {
+        tokenExpiresAt.value =
+          typeof newExpiresAt === 'number' ? newExpiresAt : new Date(newExpiresAt).getTime()
+      }
+      if (newRefreshExpiresAt) {
+        refreshTokenExpiresAt.value =
+          typeof newRefreshExpiresAt === 'number'
+            ? newRefreshExpiresAt
+            : new Date(newRefreshExpiresAt).getTime()
       }
     }
 
@@ -140,11 +162,20 @@ export const useUserStore = defineStore(
      * 清空所有用户相关状态并跳转到登录页
      * 如果是同一账号重新登录，保留工作台标签页
      */
-    const logOut = () => {
+    const logOut = async () => {
       // 保存当前用户 ID，用于下次登录时判断是否为同一用户
       const currentUserId = info.value.userId
       if (currentUserId) {
         localStorage.setItem(StorageConfig.LAST_USER_ID_KEY, String(currentUserId))
+      }
+
+      // 主动调用后台 logout 接口释放 Token
+      if (accessToken.value) {
+        try {
+          await fetchLogout()
+        } catch {
+          // 忽略登出接口请求异常，确保本地状态能正常清理
+        }
       }
 
       // 清空用户信息
@@ -159,6 +190,9 @@ export const useUserStore = defineStore(
       accessToken.value = ''
       // 清空刷新令牌
       refreshToken.value = ''
+      // 清空过期时间
+      tokenExpiresAt.value = 0
+      refreshTokenExpiresAt.value = 0
       // 注意：不清空工作台标签页，等下次登录时根据用户判断
       // 移除iframe路由缓存
       sessionStorage.removeItem('iframeRoutes')
@@ -212,6 +246,8 @@ export const useUserStore = defineStore(
       searchHistory,
       accessToken,
       refreshToken,
+      tokenExpiresAt,
+      refreshTokenExpiresAt,
       getUserInfo,
       getSettingState,
       getWorktabState,

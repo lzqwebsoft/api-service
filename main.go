@@ -71,6 +71,11 @@ func main() {
 	feedbackService := service.NewFeedbackService(feedbackRepo)
 	fileService := service.NewFileService(fileRepo, appRepo)
 
+	// Start background expired session cleaner worker
+	sessionCleaner := service.NewSessionCleaner(adminRepo, 30*time.Minute)
+	sessionCleaner.Start()
+	defer sessionCleaner.Stop()
+
 	// 5. Initialize handlers (Controller Layer)
 	adminBase := admin.NewBaseHandler()
 	apiBase := api.NewBaseHandler()

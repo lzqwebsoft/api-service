@@ -36,9 +36,72 @@ let unauthorizedTimer: NodeJS.Timeout | null = null
 interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
   showErrorMessage?: boolean
   showSuccessMessage?: boolean
+  _retry?: boolean
 }
 
 const { VITE_API_URL, VITE_WITH_CREDENTIALS } = import.meta.env
+
+/** 正在刷新 Token 的 Promise 锁 */
+let refreshTokenPromise: Promise<string> | null = null
+
+/** 检查 Refresh Token 是否有效 */
+function isRefreshTokenValid(): boolean {
+  const userStore = useUserStore()
+  if (!userStore.refreshToken) return false
+  if (userStore.refreshTokenExpiresAt && Date.now() >= userStore.refreshTokenExpiresAt) {
+    return false
+  }
+  return true
+}
+
+/** 检查 Access Token 是否已过期 */
+function isAccessTokenExpired(): boolean {
+  const userStore = useUserStore()
+  if (!userStore.accessToken) return false
+  if (userStore.tokenExpiresAt && Date.now() >= userStore.tokenExpiresAt) {
+    return true
+  }
+  return false
+}
+
+/** 执行 Token 刷新（单例锁机制） */
+async function doRefreshToken(): Promise<string> {
+  if (refreshTokenPromise) {
+    return refreshTokenPromise
+  }
+
+  refreshTokenPromise = (async () => {
+    const userStore = useUserStore()
+    const currentRefreshToken = userStore.refreshToken
+
+    if (!currentRefreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    try {
+      const response = await axios.post<BaseResponse<Api.Auth.LoginResponse>>(
+        `${VITE_API_URL || ''}/admin/refresh_token`,
+        { refreshToken: currentRefreshToken },
+        { headers: { 'Content-Type': 'application/json' } }
+      )
+
+      if (response.data && response.data.code === ApiStatus.success && response.data.data) {
+        const { token, refreshToken, expiresAt, refreshExpiresAt } = response.data.data
+        userStore.setToken(token, refreshToken, expiresAt, refreshExpiresAt)
+        return token
+      } else {
+        throw new Error(response.data?.msg || 'Refresh token failed')
+      }
+    } catch (err) {
+      logOut()
+      throw err
+    } finally {
+      refreshTokenPromise = null
+    }
+  })()
+
+  return refreshTokenPromise
+}
 
 /** Axios实例 */
 const axiosInstance = axios.create({
@@ -63,11 +126,31 @@ const axiosInstance = axios.create({
 
 /** 请求拦截器 */
 axiosInstance.interceptors.request.use(
-  (request: InternalAxiosRequestConfig) => {
-    const { accessToken } = useUserStore()
-    if (accessToken) request.headers.set('Authorization', accessToken)
+  async (request: InternalAxiosRequestConfig) => {
+    const userStore = useUserStore()
+    const isAuthEndpoint =
+      request.url?.includes('/admin/login') ||
+      request.url?.includes('/admin/refresh_token') ||
+      request.url?.includes('/admin/logout')
 
-    if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
+    // 如果 Access Token 已过期但 Refresh Token 有效，提前无感刷新 Token
+    if (!isAuthEndpoint && isAccessTokenExpired() && isRefreshTokenValid()) {
+      try {
+        const newToken = await doRefreshToken()
+        request.headers.set('Authorization', newToken)
+      } catch {
+        // doRefreshToken 失败会自动触发 logOut
+      }
+    } else if (userStore.accessToken) {
+      request.headers.set('Authorization', userStore.accessToken)
+    }
+
+    if (
+      request.data &&
+      typeof request.data === 'object' &&
+      !(request.data instanceof FormData) &&
+      !request.headers['Content-Type']
+    ) {
       request.headers.set('Content-Type', 'application/json')
       request.data = JSON.stringify(request.data)
     }
@@ -82,13 +165,63 @@ axiosInstance.interceptors.request.use(
 
 /** 响应拦截器 */
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse<BaseResponse>) => {
+  async (response: AxiosResponse<BaseResponse>) => {
     const { code, msg } = response.data
     if (code === ApiStatus.success) return response
+
+    const config = response.config as InternalAxiosRequestConfig & ExtendedAxiosRequestConfig
+    const isAuthEndpoint =
+      config.url?.includes('/admin/login') ||
+      config.url?.includes('/admin/refresh_token') ||
+      config.url?.includes('/admin/logout')
+
+    // 401 响应处理：重试刷新 Token 并重新发起原请求
+    if (code === ApiStatus.unauthorized && !config._retry && !isAuthEndpoint) {
+      if (isRefreshTokenValid()) {
+        config._retry = true
+        try {
+          const newToken = await doRefreshToken()
+          config.headers.set('Authorization', newToken)
+          return axiosInstance(config)
+        } catch {
+          handleUnauthorizedError(msg)
+        }
+      } else {
+        handleUnauthorizedError(msg)
+      }
+    }
+
     if (code === ApiStatus.unauthorized) handleUnauthorizedError(msg)
     throw createHttpError(msg || $t('httpMsg.requestFailed'), code)
   },
-  (error) => {
+  async (error) => {
+    const config = error.config as
+      (InternalAxiosRequestConfig & ExtendedAxiosRequestConfig) | undefined
+    const isAuthEndpoint =
+      config?.url?.includes('/admin/login') ||
+      config?.url?.includes('/admin/refresh_token') ||
+      config?.url?.includes('/admin/logout')
+
+    if (
+      error.response?.status === ApiStatus.unauthorized &&
+      config &&
+      !config._retry &&
+      !isAuthEndpoint
+    ) {
+      if (isRefreshTokenValid()) {
+        config._retry = true
+        try {
+          const newToken = await doRefreshToken()
+          config.headers.set('Authorization', newToken)
+          return axiosInstance(config)
+        } catch {
+          handleUnauthorizedError()
+        }
+      } else {
+        handleUnauthorizedError()
+      }
+    }
+
     if (error.response?.status === ApiStatus.unauthorized) handleUnauthorizedError()
     return Promise.reject(handleError(error))
   }

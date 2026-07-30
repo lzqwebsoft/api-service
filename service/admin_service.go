@@ -33,6 +33,7 @@ type AdminService interface {
 	Logout(ctx context.Context, token string) error
 	ValidateSession(ctx context.Context, token string) (*models.AdminSession, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*models.AdminLoginResult, error)
+	CleanExpiredSessions(ctx context.Context) (int64, error)
 	ListUsers(ctx context.Context) ([]*models.AdminUser, error)
 	CreateUser(ctx context.Context, username, password string) error
 	GetUserByID(ctx context.Context, id int) (*models.AdminUser, error)
@@ -226,6 +227,10 @@ func (s *adminService) RefreshToken(ctx context.Context, refreshToken string) (*
 		ExpiresAt:        time.Unix(accessExpiresAt, 0),
 		RefreshExpiresAt: time.Unix(refreshExpiresAt, 0),
 	}, nil
+}
+
+func (s *adminService) CleanExpiredSessions(ctx context.Context) (int64, error) {
+	return s.adminRepo.CleanExpiredSessions(ctx)
 }
 
 func (s *adminService) ListUsers(ctx context.Context) ([]*models.AdminUser, error) {

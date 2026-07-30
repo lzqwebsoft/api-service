@@ -185,7 +185,7 @@
         loading.value = true
         const { username, password } = formData
 
-        const { token, refreshToken } = await fetchLogin({
+        const { token, refreshToken, expiresAt, refreshExpiresAt } = await fetchLogin({
           userName: username,
           password,
           captchaId: captchaId.value,
@@ -198,7 +198,7 @@
         }
 
         captchaVisible.value = false
-        userStore.setToken(token, refreshToken)
+        userStore.setToken(token, refreshToken, expiresAt, refreshExpiresAt)
         userStore.setLoginStatus(true)
         showLoginSuccessNotice()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"api-service/models"
 )
@@ -16,6 +17,7 @@ type AdminRepository interface {
 	GetSessionByToken(ctx context.Context, token string) (*models.AdminSession, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (*models.AdminSession, error)
 	DeleteSession(ctx context.Context, token string) error
+	CleanExpiredSessions(ctx context.Context) (int64, error)
 	IsUserTableEmpty(ctx context.Context) (bool, error)
 	ListUsers(ctx context.Context) ([]*models.AdminUser, error)
 	GetUserByID(ctx context.Context, id int) (*models.AdminUser, error)
@@ -105,6 +107,32 @@ func (r *mysqlAdminRepository) DeleteSession(ctx context.Context, token string) 
 	query := `DELETE FROM admin_sessions WHERE access_token = ? OR refresh_token = ?`
 	_, err := r.db.ExecContext(ctx, query, token, token)
 	return err
+}
+
+func (r *mysqlAdminRepository) CleanExpiredSessions(ctx context.Context) (int64, error) {
+	now := time.Now().Unix()
+	var totalDeleted int64
+	for {
+		query := `DELETE FROM admin_sessions WHERE refresh_expires_at <= ? LIMIT 1000`
+		res, err := r.db.ExecContext(ctx, query, now)
+		if err != nil {
+			return totalDeleted, err
+		}
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return totalDeleted, err
+		}
+		totalDeleted += rows
+		if rows < 1000 {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return totalDeleted, ctx.Err()
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+	return totalDeleted, nil
 }
 
 func (r *mysqlAdminRepository) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (*models.AdminSession, error) {
