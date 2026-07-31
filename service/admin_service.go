@@ -127,8 +127,8 @@ func (s *adminService) Login(ctx context.Context, username, password, captchaID 
 	return &models.AdminLoginResult{
 		Token:            accessToken,
 		RefreshToken:     refreshToken,
-		ExpiresAt:        time.Unix(accessExpiresAt, 0),
-		RefreshExpiresAt: time.Unix(refreshExpiresAt, 0),
+		ExpiresAt:        accessExpiresAt,
+		RefreshExpiresAt: refreshExpiresAt,
 	}, nil
 }
 
@@ -224,8 +224,8 @@ func (s *adminService) RefreshToken(ctx context.Context, refreshToken string) (*
 	return &models.AdminLoginResult{
 		Token:            accessToken,
 		RefreshToken:     newRefreshToken,
-		ExpiresAt:        time.Unix(accessExpiresAt, 0),
-		RefreshExpiresAt: time.Unix(refreshExpiresAt, 0),
+		ExpiresAt:        accessExpiresAt,
+		RefreshExpiresAt: refreshExpiresAt,
 	}, nil
 }
 

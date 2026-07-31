@@ -37,10 +37,10 @@ type AdminSession struct {
 
 // AdminLoginResult represents the login output containing tokens and their expiry times
 type AdminLoginResult struct {
-	Token            string    `json:"token"`
-	RefreshToken     string    `json:"refreshToken"`
-	ExpiresAt        time.Time `json:"expiresAt"`
-	RefreshExpiresAt time.Time `json:"refreshExpiresAt"`
+	Token            string `json:"token"`
+	RefreshToken     string `json:"refreshToken"`
+	ExpiresAt        int64  `json:"expiresAt"`
+	RefreshExpiresAt int64  `json:"refreshExpiresAt"`
 }
 
 // DBAdminMenu represents the flat menu structure in the database

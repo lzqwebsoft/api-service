@@ -7,6 +7,6 @@
   "db_name": "api_service",
   "db_params": "parseTime=true&loc=Local",
   "db_dsn": "",
-  "access_token_expire_hours": 24,
-  "refresh_token_expire_days": 7
+  "access_token_expire_hours": 1,
+  "refresh_token_expire_days": 1
 }

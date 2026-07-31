@@ -137,24 +137,15 @@ export const useUserStore = defineStore(
      */
     const setToken = (
       newAccessToken: string,
-      newRefreshToken?: string,
-      newExpiresAt?: string | number,
-      newRefreshExpiresAt?: string | number
+      newRefreshToken: string,
+      newExpiresAt: number,
+      newRefreshExpiresAt: number
     ) => {
       accessToken.value = newAccessToken
-      if (newRefreshToken) {
-        refreshToken.value = newRefreshToken
-      }
-      if (newExpiresAt) {
-        tokenExpiresAt.value =
-          typeof newExpiresAt === 'number' ? newExpiresAt : new Date(newExpiresAt).getTime()
-      }
-      if (newRefreshExpiresAt) {
-        refreshTokenExpiresAt.value =
-          typeof newRefreshExpiresAt === 'number'
-            ? newRefreshExpiresAt
-            : new Date(newRefreshExpiresAt).getTime()
-      }
+      refreshToken.value = newRefreshToken
+      tokenExpiresAt.value = newExpiresAt < 1e11 ? newExpiresAt * 1000 : newExpiresAt
+      refreshTokenExpiresAt.value =
+        newRefreshExpiresAt < 1e11 ? newRefreshExpiresAt * 1000 : newRefreshExpiresAt
     }
 
     /**
