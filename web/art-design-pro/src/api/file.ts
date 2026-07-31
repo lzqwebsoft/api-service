@@ -80,10 +80,11 @@ export function fetchGetDownloadLogs(params?: {
 }
 
 // Upload local file to runtimes/uploads
-export function fetchUploadFile(data: FormData) {
+export function fetchUploadFile(data: FormData, options?: { timeout?: number }) {
   return request.post<{ file_name: string; file_size: number; download_url: string }>({
     url: '/admin/files/upload',
     data,
+    timeout: options?.timeout ?? 60000,
     headers: {
       'Content-Type': 'multipart/form-data'
     }

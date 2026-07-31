@@ -740,7 +740,8 @@
 
     uploading.value = true
     try {
-      const res = await fetchUploadFile(formData)
+      // 单独设置文件上传超时时间为 120000ms (2分钟)
+      const res = await fetchUploadFile(formData, { timeout: 120000 })
       fileForm.download_url = res.download_url
       if (!fileForm.file_name) {
         fileForm.file_name = res.file_name
