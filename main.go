@@ -91,7 +91,7 @@ func main() {
 		admin.NewUserHandler(adminBase, adminService, adminSessionAuth),
 		admin.NewBlacklistHandler(adminBase, tokenService, adminSessionAuth),
 		admin.NewLogHandler(adminBase, tokenService, adminSessionAuth),
-		admin.NewCalendarHandler(adminBase, calendarService, adminSessionAuth),
+		admin.NewCalendarHandler(adminBase, calendarService, holidayService, adminSessionAuth),
 		admin.NewHolidayHandler(adminBase, holidayService, adminSessionAuth),
 		admin.NewMenuHandler(adminBase, menuService, adminSessionAuth),
 		admin.NewRoleHandler(adminBase, roleService, adminSessionAuth),

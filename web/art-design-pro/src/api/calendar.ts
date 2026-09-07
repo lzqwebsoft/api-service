@@ -1,5 +1,52 @@
 import request from '@/utils/http'
 
+export interface CalendarDayItem {
+  date: string
+  is_workday: boolean
+  is_weekend: boolean
+  is_exception: boolean
+  exception_desc?: string
+  holidays?: string[]
+  holiday_types?: string[]
+  holiday_descs?: string[]
+}
+
+export interface CalendarMonthResponse {
+  year: number
+  month: number
+  region: string
+  exceptions: Array<{
+    date: string
+    region: string
+    is_workday: boolean
+    description: string
+    created_at?: string
+  }>
+  holidays: Array<{
+    name: string
+    type: string
+    date: string
+    regions: string[]
+    description: string
+  }>
+  days: Record<string, CalendarDayItem>
+  stats: {
+    totalDays: number
+    workdays: number
+    restDays: number
+    exceptionCount: number
+    holidayCount: number
+  }
+}
+
+// Get calendar month overview data
+export function fetchGetCalendarMonth(params: { year: number; month?: number; region?: string }) {
+  return request.get<CalendarMonthResponse>({
+    url: '/admin/calendar/month',
+    params
+  })
+}
+
 // List calendar exceptions
 export function fetchGetCalendarList(params: {
   region?: string
